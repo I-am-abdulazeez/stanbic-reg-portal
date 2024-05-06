@@ -12,16 +12,18 @@ import { Router } from 'src/router';
 
 import {
   CurrentCustomer,
+  DocumentUploadType,
   ExistingCustomer,
   TempPostData,
+  TempPostImage,
   formStepData,
 } from 'src/types';
 
 function useCreateCustMutation() {
-  const custMutation = useMutation({
+  const custMutation = useMutation<TempPostData, Error, formStepData>({
     mutationKey: ['new-customer'],
     mutationFn: createTempCustomer,
-    onSuccess: (data: TempPostData) => {
+    onSuccess: (data) => {
       console.log(data);
       useStore.setState((state) => ({
         ...state,
@@ -29,6 +31,7 @@ function useCreateCustMutation() {
           email: data.email,
           phoneNumber: data.phoneNumber,
           no: data.no,
+          imageId: null,
         },
       }));
       toast.success('Please confirm OTP sent to your phone number', {
@@ -49,6 +52,7 @@ function useCreateCustMutation() {
           email: '',
           phoneNumber: '',
           no: null,
+          imageId: null,
         },
       }));
     },
@@ -58,16 +62,21 @@ function useCreateCustMutation() {
 }
 
 function useActiveCustMutation() {
-  const updateCustMutation = useMutation({
-    mutationKey: ['customer'],
+  const updateCustMutation = useMutation<
+    ExistingCustomer,
+    Error,
+    CurrentCustomer
+  >({
+    mutationKey: ['customer-image'],
     mutationFn: fetchTempCustomerByDetails,
-    onSuccess: (data: ExistingCustomer) => {
+    onSuccess: (data) => {
       useStore.setState((state) => ({
         ...state,
         currentUser: {
           email: data.temporaryCustomer.email,
           phoneNumber: data.temporaryCustomer.phoneNumber,
           no: data.temporaryCustomer.no,
+          imageId: null,
         },
       }));
       toast.success(`Welcome back, ${useStore.getState().currentUser?.email}`, {
@@ -86,8 +95,9 @@ function useActiveCustMutation() {
         ...state,
         currentUser: {
           email: '',
-          no: null,
           phoneNumber: '',
+          no: null,
+          imageId: null,
         },
       }));
     },
@@ -129,11 +139,22 @@ function useUpdateCustMutation<TData extends formStepData>(
 }
 
 function useCreateImageMutation() {
-  const createCustomerImageMutation = useMutation({
+  const createCustomerImageMutation = useMutation<
+    TempPostImage,
+    Error,
+    DocumentUploadType
+  >({
     mutationKey: ['customer-details'],
     mutationFn: createTempCustomerImage,
-    onSuccess: (data: CurrentCustomer & { message: string }) => {
+    onSuccess: (data) => {
       console.log(data);
+      useStore.setState((state) => ({
+        ...state,
+        currentUser: {
+          ...state.currentUser,
+          imageId: data.imageId,
+        },
+      }));
       setTimeout(() => {
         toast.success(`Image Saved..`, {
           position: 'bottom-center',
@@ -143,11 +164,17 @@ function useCreateImageMutation() {
       Router.navigate('/summary');
     },
     onError: (err) => {
-      console.log(err, err.name);
       toast.error(err.message, {
         position: 'bottom-center',
         duration: 4000,
       });
+      useStore.setState((state) => ({
+        ...state,
+        currentUser: {
+          ...state.currentUser,
+          imageId: null,
+        },
+      }));
     },
   });
 
