@@ -35,7 +35,7 @@ export default function Summary() {
     currentUser?.phoneNumber
   );
 
-  const sendToPencom = () => {
+  function sendToPencom() {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
@@ -44,7 +44,7 @@ export default function Summary() {
       });
       onOpen();
     }, 5000);
-  };
+  }
 
   useEffect(() => {
     console.log(stepFormData);
