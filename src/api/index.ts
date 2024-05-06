@@ -29,15 +29,12 @@ const fetchTempCustomerByDetails = (data: {
 
 // https://jsonplaceholder.typicode.com/posts
 
-const createTempCustomer = async (data: any) => {
+const createTempCustomer = async (data: formStepData) => {
   const response = await fetch(TEMPCUST_API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-
-  console.log(response.ok);
-  console.log(response.status);
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
