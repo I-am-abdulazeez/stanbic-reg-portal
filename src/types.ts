@@ -275,6 +275,35 @@ export type TempPostData = CurrentCustomer & {
   status: number;
 };
 
+export type base64Type = string | ArrayBuffer | null;
+
+export type DocumentUploadType = {
+  ninConsents: string;
+  clientImages: string;
+  piDs: string;
+  birthCertificates: string;
+  rsaPage1s: string;
+  rsaPage2s: string;
+  statuss: number;
+  expatraiteDocuments: string;
+  transferAcceptanceServices: string;
+  promotionLetterSlips: string;
+  promotionLetterSlip04s: string;
+  promotionLetterSlip07s: string;
+  promotionLetterSlip10s: string;
+  promotionLetterSlip13s: string;
+  promotionLetterSlip16s: string;
+  fullPictures: string;
+  employerConfirmationDocs: string;
+  fingerprintDocuments: string;
+  letterOfIndemenitys: string;
+  pictures: base64Type;
+  signatures: base64Type;
+  ninSlips: base64Type;
+  proofOfIDs: base64Type;
+  letterOfAppointments: base64Type;
+};
+
 export type ImageUpload = {
   passportFile: File | null;
   signatureFile: File | null;
