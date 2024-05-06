@@ -1,8 +1,8 @@
 import { TEMPCUST_API, TEMPIMAGE_API } from 'src/data';
 
-import { OmitNo, RegFormType, formStepData } from 'src/types';
+import { formStepData } from 'src/types';
 
-type PickContinue = Pick<RegFormType, 'email' | 'phoneNumber'>;
+// type PickContinue = Pick<RegFormType, 'email' | 'phoneNumber'>;
 
 const fetchTempCustomers = () => {
   return fetch(TEMPCUST_API, {
