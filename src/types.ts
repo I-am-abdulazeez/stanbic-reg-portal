@@ -240,7 +240,7 @@ export type formStepData = Omit<
 
 export type IStoreState = {
   currentRoute: string;
-  currentUser: CurrentCustomer;
+  currentUser: CurrentCustomer & { imageId: number | null };
 
   stepFormData: formStepData;
 };
@@ -262,6 +262,12 @@ export type CurrentCustomer = {
   email: string | undefined;
   phoneNumber: string | undefined;
   no: number | null;
+};
+
+export type TempPostImage = {
+  status: number;
+  message: string;
+  imageId: number;
 };
 
 export type TempPostData = CurrentCustomer & {
