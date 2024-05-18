@@ -9,17 +9,24 @@ import FileUpload from 'src/components/FileUpload';
 
 import useStore from 'src/store';
 import { DEFAULT_IMAGES } from 'src/data';
-import { getBlobFromFile } from 'src/helpers';
+import { getBlobFromFile, getFileFromBlob } from 'src/helpers';
 
-import { useCreateImageMutation } from 'src/hooks/mutation/useCustMutations';
+import { useCustomerImage } from 'src/hooks/query/useCustomers';
+import {
+  useCreateImageMutation,
+  useUpdateImageMutation,
+} from 'src/hooks/mutation/useCustMutations';
 
 import { FileType, ImageUpload, base64Type } from 'src/types';
 
 export default function DocsUpload() {
-  const { currentUser } = useStore();
-  const createImageMutation = useCreateImageMutation();
+  const { currentUser, currentUserDocs } = useStore();
+  const custData = useCustomerImage(currentUser?.imageId, currentUser?.no);
 
-  const [_, setFiles] = useState<ImageUpload>({
+  const createImageMutation = useCreateImageMutation();
+  const updateImageMutation = useUpdateImageMutation();
+
+  const [files, setFiles] = useState<ImageUpload>({
     passportFile: null,
     signatureFile: null,
     NINFile: null,
@@ -42,19 +49,19 @@ export default function DocsUpload() {
     }));
     switch (fileType) {
       case 'passport':
-        getBlobFromFile(file, setPassportString);
+        getBlobFromFile(file, setPassportString, 'picture');
         break;
       case 'signature':
-        getBlobFromFile(file, setSignatureString);
+        getBlobFromFile(file, setSignatureString, 'signatures');
         break;
       case 'NIN':
-        getBlobFromFile(file, setNINString);
+        getBlobFromFile(file, setNINString, 'ninSlips');
         break;
       case 'POA':
-        getBlobFromFile(file, setPOAString);
+        getBlobFromFile(file, setPOAString, 'proofOfIDs');
         break;
       case 'EOE':
-        getBlobFromFile(file, setEOEString);
+        getBlobFromFile(file, setEOEString, 'letterOfAppointments');
         break;
       default:
         break;
@@ -62,36 +69,88 @@ export default function DocsUpload() {
   }
 
   function handleFileUpload() {
+    const DbPassport =
+      String(passportString).split(',')[1] ||
+      String((custData?.data?.temporaryImages[0] as any).picture);
+    const DbSignature =
+      String(signatureString).split(',')[1] ||
+      String((custData?.data?.temporaryImages[0] as any).signature);
+    const DbNIN =
+      String(NINString).split(',')[1] ||
+      String((custData?.data?.temporaryImages[0] as any).ninSlip);
+    const DbPOA =
+      String(POAString).split(',')[1] ||
+      String((custData?.data?.temporaryImages[0] as any).proofOfID);
+    const DbEOE =
+      String(EOEString).split(',')[1] ||
+      String((custData?.data?.temporaryImages[0] as any).letterOfAppointment);
+
     const newData = {
       customerID: currentUser?.no,
-      pictures: passportString,
-      signatures: signatureString,
-      ninSlips: NINString,
-      proofOfIDs: POAString,
-      letterOfAppointments: EOEString,
+      pictures: DbPassport,
+      signatures: DbSignature,
+      ninSlips: DbNIN,
+      proofOfIDs: DbPOA,
+      letterOfAppointments: DbEOE,
       ...DEFAULT_IMAGES,
     };
-    console.log(newData);
-    createImageMutation.mutate(newData);
+
+    const updateData = {
+      id: currentUser?.imageId,
+      customerID: currentUser?.no,
+      pictures: DbPassport,
+      signatures: DbSignature,
+      ninSlips: DbNIN,
+      proofOfIDs: DbPOA,
+      letterOfAppointments: DbEOE,
+      ...DEFAULT_IMAGES,
+    };
+
+    if (!currentUser?.imageId || currentUser?.imageId === 0) {
+      createImageMutation.mutate(newData);
+    } else {
+      console.log(updateData);
+      updateImageMutation.mutate(updateData);
+    }
   }
 
   useEffect(() => {
+    if (currentUser?.imageId !== null || currentUser?.imageId === 0) {
+      if (currentUser?.no === custData?.data?.temporaryImages[0].customerID) {
+        const defaultPassport = getFileFromBlob(
+          String(currentUserDocs?.picture),
+          'passport'
+        );
+        const defaultSignature = getFileFromBlob(
+          String(currentUserDocs.signatures),
+          'signature'
+        );
+        const defaultNIN = getFileFromBlob(
+          String(currentUserDocs.ninSlips),
+          'NIN'
+        );
+        const defaultPOA = getFileFromBlob(
+          String(currentUserDocs.proofOfIDs),
+          'POA'
+        );
+        const defaultEOE = getFileFromBlob(
+          String(currentUserDocs.letterOfAppointments),
+          'EOE'
+        );
+
+        setFiles({
+          passportFile: defaultPassport,
+          signatureFile: defaultSignature,
+          NINFile: defaultNIN,
+          POAFile: defaultPOA,
+          EOEFile: defaultEOE,
+        });
+      }
+    }
+    console.log(currentUserDocs);
+    console.log(custData?.data);
     console.log(currentUser);
-    console.log(
-      passportString,
-      signatureString,
-      NINString,
-      POAString,
-      EOEString
-    );
-  }, [
-    passportString,
-    signatureString,
-    NINString,
-    POAString,
-    EOEString,
-    currentUser,
-  ]);
+  }, [currentUser, currentUserDocs, custData?.data]);
   return (
     <>
       <div className="font-inter min-h-screen">
@@ -116,14 +175,16 @@ export default function DocsUpload() {
               fileType="passport"
               label="Upload Passport"
               accept="image/*"
-              onFileChange={(file, fileType) =>
-                handleFileChange(file, fileType)
-              }
+              defaultFile={files.passportFile}
+              onFileChange={(file, fileType) => {
+                handleFileChange(file, fileType);
+              }}
             />
             <FileUpload
               fileType="signature"
               label="Upload Signature"
               accept="image/*"
+              defaultFile={files.signatureFile}
               onFileChange={(file, fileType) =>
                 handleFileChange(file, fileType)
               }
@@ -132,6 +193,7 @@ export default function DocsUpload() {
               fileType="NIN"
               label="Upload NIN Slip / NIMC Card / NIN Evidence"
               accept="image/*"
+              defaultFile={files.NINFile}
               onFileChange={(file, fileType) =>
                 handleFileChange(file, fileType)
               }
@@ -140,6 +202,7 @@ export default function DocsUpload() {
               fileType="POA"
               label="Upload Proof of Address (Staff Identity Card)"
               accept="image/*"
+              defaultFile={files.POAFile}
               onFileChange={(file, fileType) =>
                 handleFileChange(file, fileType)
               }
@@ -148,6 +211,7 @@ export default function DocsUpload() {
               fileType="EOE"
               label="Upload Evidence of Employment"
               accept="image/*"
+              defaultFile={files.EOEFile}
               onFileChange={(file, fileType) =>
                 handleFileChange(file, fileType)
               }
@@ -166,7 +230,7 @@ export default function DocsUpload() {
             >
               Go back
             </Button>
-            <div className="flex gap-4 justify-end ">
+            <div className="flex gap-4 justify-end">
               {/* <Button
                 color="primary"
                 radius="lg"
@@ -174,22 +238,36 @@ export default function DocsUpload() {
               >
                 Save
               </Button> */}
-              <Button
-                radius="lg"
-                onClick={handleFileUpload}
-                isDisabled={
-                  !passportString ||
-                  !signatureString ||
-                  !NINString ||
-                  !POAString ||
-                  !EOEString
-                }
-                isLoading={createImageMutation.isPending}
-                color="primary"
-                className="font-inter font-semibold bg-black"
-              >
-                Next
-              </Button>
+              {!currentUser?.imageId ||
+              currentUser?.imageId === 0 ||
+              currentUserDocs.picture === '' ? (
+                <Button
+                  radius="lg"
+                  onClick={handleFileUpload}
+                  isDisabled={
+                    !passportString ||
+                    !signatureString ||
+                    !NINString ||
+                    !POAString ||
+                    !EOEString
+                  }
+                  isLoading={createImageMutation.isPending}
+                  color="primary"
+                  className="font-inter font-semibold bg-black"
+                >
+                  Next
+                </Button>
+              ) : (
+                <Button
+                  radius="lg"
+                  onClick={handleFileUpload}
+                  color="primary"
+                  className="font-inter font-semibold bg-black"
+                  isLoading={updateImageMutation?.isPending}
+                >
+                  Update
+                </Button>
+              )}
             </div>
           </div>
         </div>
