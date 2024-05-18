@@ -15,8 +15,18 @@ import useStore from 'src/store';
 import stanbic from 'src/assets/stanbic-pic.jpeg';
 
 export default function INavbar() {
-  const { setCurrentUser } = useStore();
-  const navigate = useNavigate();
+  function logout() {
+    useStore.setState((state) => ({
+      ...state,
+      currentUser: {
+        ...state.currentUser,
+        email: '',
+        no: null,
+        phoneNumber: '',
+        imageId: null,
+      },
+    }));
+  }
 
   return (
     <Navbar position="static">
@@ -31,14 +41,7 @@ export default function INavbar() {
             startContent={<SignOutIcon />}
             className="font-inter font-semibold bg-black"
             radius="sm"
-            onClick={() => {
-              setCurrentUser({
-                email: '',
-                no: null,
-                phoneNumber: '',
-              });
-              navigate('/');
-            }}
+            onClick={logout}
           >
             Logout
           </Button>
