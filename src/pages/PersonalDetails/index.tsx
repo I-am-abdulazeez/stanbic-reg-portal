@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
   Accordion,
   AccordionItem,
   Button,
+  Checkbox,
   DateInput,
   Divider,
   Input,
@@ -12,7 +13,7 @@ import {
   SelectItem,
 } from '@nextui-org/react';
 import { useNavigate } from 'react-router-dom';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import INavbar from 'src/components/INavbar';
 import IFooter from 'src/components/IFooter';
@@ -26,32 +27,97 @@ import {
   STATEMENT_OPTION,
   ABROAD_DATA,
   STATUSES,
+  GENDER,
 } from 'src/data';
 import { DateToString } from 'src/helpers';
 
 import { useCustomerByDetails } from 'src/hooks/query/useCustomers';
+import {
+  useCustCountries,
+  useCustLocalGovt,
+  useCustStates,
+} from 'src/hooks/query/useLocation';
 import { useUpdateCustMutation } from 'src/hooks/mutation/useCustMutations';
 
 import { RegFormType, StepTwoData, formStepData } from 'src/types';
+import { parseDate } from '@internationalized/date';
 
 export default function PersonalDetails() {
-  const { currentUser, stepFormData, setStepFormData } = useStore();
-  const updateCustomerMutation =
-    useUpdateCustMutation<formStepData>('/step-three');
+  const navigate = useNavigate();
+  const [useResAddress, setUseResAddress] = useState(false);
+
+  const form = useForm<RegFormType>();
+  const {
+    nationality,
+    stateOfOrigin,
+    residenceState,
+    residenceCountry,
+    residenceLocalGovernmentCode,
+    correspondenceState,
+    correspondenceCountry,
+  } = useWatch({ control: form.control });
+
+  const { currentUser } = useStore();
 
   const { data: userData } = useCustomerByDetails(
     currentUser?.email,
     currentUser?.phoneNumber
   );
+  const { data: countries } = useCustCountries();
+  const { data: resCountries } = useCustCountries();
+  const { data: corresCountries } = useCustCountries();
 
-  const {
-    register,
-    control,
-    reset,
-    formState: { errors },
-    handleSubmit,
-  } = useForm<RegFormType>();
-  const navigate = useNavigate();
+  const { data: states } = useCustStates();
+  const { data: resStates } = useCustStates();
+  const { data: corresStates } = useCustStates();
+
+  const { data: localGovtOrigin } = useCustLocalGovt(stateOfOrigin);
+  const { data: resLocalGovt } = useCustLocalGovt(residenceState);
+  const { data: corresLocalGovt } = useCustLocalGovt(correspondenceState);
+
+  const updateCustMutation = useUpdateCustMutation<formStepData>('/step-three');
+
+  function handleUseResAddressChange(isChecked: boolean) {
+    setUseResAddress(isChecked);
+    if (isChecked) {
+      const [
+        residenceHouseNameOrNumber,
+        residenceTownCity,
+        residenceStreetName,
+        residenceZipCode,
+      ] = form.getValues([
+        'residenceHouseNameOrNumber',
+        'residenceTownCity',
+        'residenceStreetName',
+        'residenceZipCode',
+      ]);
+      form.setValue(
+        'correspondenceHouseNameOrNumber',
+        String(residenceHouseNameOrNumber)
+      );
+      form.setValue('correspondenceStreetName', residenceStreetName);
+      form.setValue('correspondenceTownCity', residenceTownCity);
+      form.setValue('correspondenceZipCode', residenceZipCode);
+
+      form.setValue('correspondenceCountry', String(residenceCountry));
+      form.setValue('correspondenceState', String(residenceState));
+
+      form.setValue(
+        'correspondenceLocalGovernmentCode',
+        String(residenceLocalGovernmentCode)
+      );
+    } else {
+      form.setValue('correspondenceHouseNameOrNumber', '');
+      form.setValue('correspondenceHouseNameOrNumber', '');
+      form.setValue('correspondenceStreetName', '');
+      form.setValue('correspondenceTownCity', '');
+      form.setValue('correspondenceZipCode', '');
+
+      form.setValue('correspondenceCountry', '');
+      form.setValue('correspondenceState', '');
+      form.setValue('correspondenceLocalGovernmentCode', '');
+    }
+  }
 
   function onSubmit(data: StepTwoData) {
     const { dateOfBirth, ...rest } = data;
@@ -65,78 +131,121 @@ export default function PersonalDetails() {
       ...ABROAD_DATA,
     };
     console.log(newData);
-    updateCustomerMutation.mutate(newData);
-    setStepFormData(newData);
+    // updateCustMutation.mutate(newData);
+    // setStepFormData(newData);
   }
 
   useEffect(() => {
     if (currentUser.email !== '') {
-      reset(
+      form.reset(
         {
-          firstName: userData?.temporaryCustomer.firstName || '',
-          surname: userData?.temporaryCustomer?.surname || '',
-          title: userData?.temporaryCustomer?.title || '',
-          phoneNumber: userData?.temporaryCustomer?.phoneNumber || '',
-          residenceState: userData?.temporaryCustomer?.residenceState || '',
+          title: userData?.result?.title || '',
+          firstName: userData?.result.firstName || '',
+          surname: userData?.result?.surname || '',
+          middleName: userData?.result?.middleName || '',
+          gender: userData?.result?.gender,
+          placeOfBirth: userData?.result.placeOfBirth || '',
+          maritalStatus: userData?.result?.maritalStatus,
+          nationality: userData?.result.nationality || '',
+          stateOfOrigin: userData?.result.stateOfOrigin || '',
+          localGovernmentOfOrigin: userData?.result.stateOfOrigin || '',
+          maidenOrFormerName: userData?.result.maidenOrFormerName || '',
+          phoneNumber: userData?.result?.phoneNumber || '',
+          email: userData?.result?.email || '',
           nin:
-            userData?.temporaryCustomer?.nin === '24444444444'
+            userData?.result?.nin === '24444444444'
               ? ''
-              : userData?.temporaryCustomer?.nin || '',
-          email: userData?.temporaryCustomer?.email || '',
-          middleName: userData?.temporaryCustomer?.middleName || '',
-          placeOfBirth: userData?.temporaryCustomer.placeOfBirth || '',
-          stateOfOrigin: userData?.temporaryCustomer.stateOfOrigin || '',
-          localGovernmentOfOrigin:
-            userData?.temporaryCustomer.stateOfOrigin || '',
-          nationality: userData?.temporaryCustomer.nationality || '',
-          maidenOrFormerName:
-            userData?.temporaryCustomer.maidenOrFormerName || '',
+              : userData?.result?.nin || '',
 
           residenceHouseNameOrNumber:
-            userData?.temporaryCustomer.residenceHouseNameOrNumber || '',
-          residenceStreetName:
-            userData?.temporaryCustomer.residenceStreetName || '',
-          residenceZipCode: userData?.temporaryCustomer.placeOfBirth || '',
-          residenceCountry: userData?.temporaryCustomer.residenceCountry || '',
-          residenceTownCity:
-            userData?.temporaryCustomer.residenceTownCity || '',
-          poBox: userData?.temporaryCustomer.poBox || '',
-
+            userData?.result.residenceHouseNameOrNumber || '',
+          residenceStreetName: userData?.result.residenceStreetName || '',
+          residenceTownCity: userData?.result.residenceTownCity || '',
+          residenceZipCode: userData?.result.placeOfBirth || '',
+          poBox: userData?.result.poBox || '',
+          residenceCountry: userData?.result.residenceCountry || '',
+          residenceState: userData?.result?.residenceState || '',
           residenceLocalGovernmentCode:
-            userData?.temporaryCustomer.residenceLocalGovernmentCode || '',
-          correspondenceCountry:
-            userData?.temporaryCustomer.correspondenceCountry || '',
-          correspondenceState:
-            userData?.temporaryCustomer.correspondenceState || '',
-          correspondenceLocalGovernmentCode:
-            userData?.temporaryCustomer.correspondenceLocalGovernmentCode || '',
+            userData?.result.residenceLocalGovernmentCode || '',
+
           correspondenceHouseNameOrNumber:
-            userData?.temporaryCustomer.correspondenceHouseNameOrNumber || '',
+            userData?.result.correspondenceHouseNameOrNumber || '',
+          correspondenceTownCity: userData?.result.correspondenceTownCity || '',
           correspondenceStreetName:
-            userData?.temporaryCustomer.correspondenceStreetName || '',
-          correspondenceTownCity:
-            userData?.temporaryCustomer.correspondenceTownCity || '',
-          correspondenceZipCode:
-            userData?.temporaryCustomer.correspondenceZipCode || '',
-          bankName: userData?.temporaryCustomer.bankName || '',
-          customerAccountNo:
-            userData?.temporaryCustomer.customerAccountNo || '',
+            userData?.result.correspondenceStreetName || '',
+          correspondenceZipCode: userData?.result.correspondenceZipCode || '',
+          correspondenceCountry: userData?.result.correspondenceCountry || '',
+          correspondenceState: userData?.result.correspondenceState || '',
+          correspondenceLocalGovernmentCode:
+            userData?.result.correspondenceLocalGovernmentCode || '',
+
+          bankName: userData?.result.bankName || '',
+          customerAccountNo: userData?.result.customerAccountNo || '',
           bvn:
-            userData?.temporaryCustomer.bvn === '24444444444'
+            userData?.result.bvn === '24444444444'
               ? ''
-              : userData?.temporaryCustomer.bvn || '',
-          statementOption: userData?.temporaryCustomer.statementOption || '',
+              : userData?.result.bvn || '',
+          statementOption: userData?.result.statementOption || '',
         },
         { keepDirtyValues: true, keepValues: true }
       );
-      console.log(userData);
-      console.log(stepFormData);
     }
-    console.log(currentUser);
-  }, [userData, currentUser, stepFormData]);
+  }, [userData, currentUser, useResAddress]);
+
+  useEffect(() => {
+    if (
+      nationality !== '' &&
+      nationality !== 'NG' &&
+      nationality !== undefined
+    ) {
+      form.setValue('stateOfOrigin', 'FR');
+      if (states) {
+        form.setValue('localGovernmentOfOrigin', 'FRN');
+      }
+    } else {
+      form.setValue('stateOfOrigin', '');
+      form.setValue('localGovernmentOfOrigin', '');
+    }
+  }, [nationality]);
+
+  useEffect(() => {
+    if (
+      residenceCountry !== '' &&
+      residenceCountry !== 'NG' &&
+      residenceCountry !== undefined
+    ) {
+      form.setValue('residenceState', 'FR');
+      if (resStates) {
+        form.setValue('residenceLocalGovernmentCode', 'FRN');
+      }
+    } else {
+      if (!useResAddress) {
+        form.setValue('residenceState', '');
+        form.setValue('residenceLocalGovernmentCode', '');
+      }
+    }
+  }, [residenceCountry]);
+
+  useEffect(() => {
+    if (
+      correspondenceCountry !== '' &&
+      correspondenceCountry !== 'NG' &&
+      correspondenceCountry !== undefined
+    ) {
+      form.setValue('correspondenceState', 'FR');
+      if (corresStates) {
+        form.setValue('correspondenceLocalGovernmentCode', 'FRN');
+      }
+    } else {
+      if (!useResAddress) {
+        form.setValue('correspondenceState', '');
+        form.setValue('correspondenceLocalGovernmentCode', '');
+      }
+    }
+  }, [correspondenceCountry]);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form onSubmit={form.handleSubmit(onSubmit)}>
       <div className="font-inter min-h-screen">
         <INavbar />
         <Divider className="my-2 mx-auto max-w-[980px]" />
@@ -149,9 +258,10 @@ export default function PersonalDetails() {
 
           <Progress aria-label="Loading..." value={40} className="mt-10 mb-7" />
 
-          <Accordion defaultExpandedKeys={['2']} variant="light">
+          <Accordion defaultExpandedKeys={['1']} selectionMode="multiple">
             <AccordionItem
               key={'1'}
+              className="py-5"
               aria-label="first-accordion"
               subtitle={
                 <span>Expand each section and complete your bio details</span>
@@ -171,7 +281,7 @@ export default function PersonalDetails() {
                   classNames={{
                     trigger: ['border-1 border-solid border-grey-900'],
                   }}
-                  {...register('title')}
+                  {...form.register('title')}
                 >
                   {CUSTOMER_TITLE.map((tit) => (
                     <SelectItem
@@ -194,7 +304,7 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('firstName')}
+                  {...form.register('firstName')}
                 />
 
                 <Input
@@ -206,7 +316,7 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('middleName')}
+                  {...form.register('middleName')}
                 />
 
                 <Input
@@ -219,7 +329,7 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('surname')}
+                  {...form.register('surname')}
                 />
 
                 <Select
@@ -231,43 +341,38 @@ export default function PersonalDetails() {
                   classNames={{
                     trigger: INPUT_STYLES,
                   }}
-                  {...register('gender')}
+                  {...form.register('gender')}
                 >
-                  <SelectItem
-                    key={'Male'}
-                    value={'Male'}
-                    classNames={{ title: ['font-inter'] }}
-                  >
-                    Male
-                  </SelectItem>
-                  <SelectItem
-                    key={'Female'}
-                    value={'Female'}
-                    classNames={{ title: ['font-inter'] }}
-                  >
-                    Female
-                  </SelectItem>
+                  {GENDER.map((gen) => (
+                    <SelectItem
+                      key={gen.id}
+                      value={gen.id}
+                      classNames={{ title: ['font-inter'] }}
+                    >
+                      {gen.title}
+                    </SelectItem>
+                  ))}
                 </Select>
 
                 <Controller
-                  control={control}
+                  control={form.control}
                   name="dateOfBirth"
                   rules={{ required: true }}
-                  render={({ field: { onChange, value } }) => (
+                  render={({ field }) => (
                     <div>
                       <DateInput
                         label={'Date of Birth'}
                         isRequired
-                        isInvalid={Boolean(errors.dateOfBirth)}
+                        isInvalid={Boolean(form.formState.errors.dateOfBirth)}
                         radius="sm"
-                        onChange={onChange}
-                        value={value}
+                        onChange={field.onChange}
+                        value={field.value || parseDate('2024-04-04')}
                         className="font-inter font-medium text-xl"
                         classNames={{
                           inputWrapper: INPUT_STYLES,
                         }}
                       />
-                      {errors.dateOfBirth && (
+                      {form.formState.errors.dateOfBirth && (
                         <p className="text-danger text-xs font-inter">
                           Please fill out this field.
                         </p>
@@ -286,7 +391,7 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('placeOfBirth')}
+                  {...form.register('placeOfBirth')}
                 />
 
                 <Select
@@ -298,78 +403,125 @@ export default function PersonalDetails() {
                   classNames={{
                     trigger: INPUT_STYLES,
                   }}
-                  {...register('maritalStatus')}
+                  {...form.register('maritalStatus')}
                 >
                   {MARITAL_STATUS.map((status) => (
                     <SelectItem
-                      key={status}
-                      value={status}
+                      key={status.id}
+                      value={status.id}
                       classNames={{ title: ['font-inter'] }}
                     >
-                      {status}
+                      {status.title}
                     </SelectItem>
                   ))}
                 </Select>
 
-                <Select
-                  label="Country of Origin"
-                  placeholder="-Select Country-"
-                  isRequired
-                  radius="sm"
-                  className="font-inter font-medium text-xl"
-                  classNames={{
-                    trigger: INPUT_STYLES,
-                  }}
-                  {...register('nationality')}
-                >
-                  <SelectItem
-                    key={'Single'}
-                    value={'Single'}
-                    classNames={{ title: ['font-inter'] }}
-                  >
-                    Nigeria
-                  </SelectItem>
-                </Select>
+                <Controller
+                  control={form.control}
+                  name="nationality"
+                  render={({ field }) => (
+                    <Select
+                      items={
+                        countries?.filter((country) => country.name !== '') ||
+                        []
+                      }
+                      label="Country of Origin"
+                      isRequired
+                      radius="sm"
+                      className="font-inter font-medium text-xl"
+                      classNames={{
+                        trigger: INPUT_STYLES,
+                      }}
+                      selectedKeys={
+                        field.value !== undefined ? [field.value] : []
+                      }
+                      onBlur={field.onBlur}
+                      onChange={field.onChange}
+                    >
+                      {(data) => (
+                        <SelectItem
+                          key={data.code}
+                          value={data.code}
+                          classNames={{ title: ['font-inter'] }}
+                        >
+                          {data.name}
+                        </SelectItem>
+                      )}
+                    </Select>
+                  )}
+                />
 
-                <Select
-                  label="State of Origin"
-                  placeholder="-Select State-"
-                  isRequired
-                  radius="sm"
-                  className="font-inter font-medium text-xl"
-                  classNames={{
-                    trigger: INPUT_STYLES,
-                  }}
-                  {...register('stateOfOrigin')}
-                >
-                  <SelectItem
-                    key={'Single'}
-                    value={'Single'}
-                    classNames={{ title: ['font-inter'] }}
-                  >
-                    Lagos
-                  </SelectItem>
-                </Select>
+                <Controller
+                  control={form.control}
+                  name="stateOfOrigin"
+                  render={({ field }) => (
+                    <Select
+                      items={states || []}
+                      label="State of Origin"
+                      isRequired
+                      radius="sm"
+                      className="font-inter font-medium text-xl"
+                      classNames={{
+                        trigger: INPUT_STYLES,
+                      }}
+                      isDisabled={
+                        nationality !== 'NG' && nationality !== undefined
+                      }
+                      selectedKeys={
+                        field.value !== undefined ? [field.value] : []
+                      }
+                      onBlur={field.onBlur}
+                      onChange={field.onChange}
+                      disabledKeys={['FR']}
+                    >
+                      {(data) => (
+                        <SelectItem
+                          key={data.code}
+                          value={data.code}
+                          classNames={{ title: ['font-inter'] }}
+                        >
+                          {data.name}
+                        </SelectItem>
+                      )}
+                    </Select>
+                  )}
+                />
 
-                <Select
-                  label="Local Governement of Origin"
-                  placeholder="-Select Local Govt-"
-                  isRequired
-                  radius="sm"
-                  className="font-inter font-medium text-xl"
-                  classNames={{
-                    trigger: INPUT_STYLES,
-                  }}
-                  {...register('localGovernmentOfOrigin')}
-                >
-                  <SelectItem
-                    key={'Mushin'}
-                    value={'Mushin'}
-                    classNames={{ title: ['font-inter'] }}
-                  >
-                    Mushin
-                  </SelectItem>
-                </Select>
+                <Controller
+                  control={form.control}
+                  name="localGovernmentOfOrigin"
+                  render={({ field }) => (
+                    <Select
+                      items={localGovtOrigin || []}
+                      label="Local Governement of Origin"
+                      isRequired
+                      radius="sm"
+                      className="font-inter font-medium text-xl"
+                      classNames={{
+                        trigger: INPUT_STYLES,
+                      }}
+                      isDisabled={
+                        (nationality !== 'NG' && nationality !== undefined) ||
+                        stateOfOrigin === ''
+                      }
+                      selectedKeys={
+                        field.value !== undefined ? [field.value] : []
+                      }
+                      onBlur={field.onBlur}
+                      onChange={field.onChange}
+                    >
+                      {(data) => (
+                        <SelectItem
+                          key={data.code}
+                          value={data.code}
+                          classNames={{ title: ['font-inter'] }}
+                        >
+                          {data.name}
+                        </SelectItem>
+                      )}
+                    </Select>
+                  )}
+                />
 
                 <Input
                   type="text"
@@ -381,7 +533,7 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('maidenOrFormerName')}
+                  {...form.register('maidenOrFormerName')}
                 />
 
                 <Input
@@ -394,7 +546,7 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('phoneNumber')}
+                  {...form.register('phoneNumber')}
                 />
 
                 <Input
@@ -407,7 +559,7 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('email')}
+                  {...form.register('email')}
                 />
 
                 <Input
@@ -420,15 +572,13 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('nin')}
+                  {...form.register('nin')}
                 />
               </div>
             </AccordionItem>
-          </Accordion>
-
-          <Accordion variant="light">
             <AccordionItem
               key={'2'}
+              className="py-5"
               aria-label="second-accordion"
               subtitle={
                 <span>
@@ -451,7 +601,7 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('residenceHouseNameOrNumber')}
+                  {...form.register('residenceHouseNameOrNumber')}
                 />
 
                 <Input
@@ -464,7 +614,7 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('residenceStreetName')}
+                  {...form.register('residenceStreetName')}
                 />
 
                 <Input
@@ -477,7 +627,7 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('residenceTownCity')}
+                  {...form.register('residenceTownCity')}
                 />
 
                 <Input
@@ -489,7 +639,7 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('residenceZipCode')}
+                  {...form.register('residenceZipCode')}
                 />
 
                 <Input
@@ -501,75 +651,123 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('poBox')}
+                  {...form.register('poBox')}
                 />
 
-                <Select
-                  label="Residenntial Country"
-                  placeholder="-Select Country-"
-                  isRequired
-                  radius="sm"
-                  className="font-inter font-medium text-xl"
-                  classNames={{
-                    trigger: INPUT_STYLES,
-                  }}
-                  {...register('residenceCountry')}
-                >
-                  <SelectItem
-                    key={'Nigeria'}
-                    value={'Nigeria'}
-                    classNames={{ title: ['font-inter'] }}
-                  >
-                    Nigeria
-                  </SelectItem>
-                </Select>
+                <Controller
+                  control={form.control}
+                  name="residenceCountry"
+                  render={({ field }) => (
+                    <Select
+                      items={
+                        resCountries?.filter(
+                          (country) => country.name !== ''
+                        ) || []
+                      }
+                      label="Residential Country"
+                      isRequired
+                      radius="sm"
+                      className="font-inter font-medium text-xl"
+                      classNames={{
+                        trigger: INPUT_STYLES,
+                      }}
+                      selectedKeys={
+                        field.value !== undefined ? [field.value] : []
+                      }
+                      onBlur={field.onBlur}
+                      onChange={field.onChange}
+                    >
+                      {(data) => (
+                        <SelectItem
+                          key={data.code}
+                          value={data.code}
+                          classNames={{ title: ['font-inter'] }}
+                        >
+                          {data.name}
+                        </SelectItem>
+                      )}
+                    </Select>
+                  )}
+                />
 
-                <Select
-                  label="Residential State"
-                  placeholder="-Select State-"
-                  isRequired
-                  radius="sm"
-                  className="font-inter font-medium text-xl"
-                  classNames={{
-                    trigger: INPUT_STYLES,
-                  }}
-                  {...register('residenceState')}
-                >
-                  <SelectItem
-                    key={'Lagos'}
-                    value={'Lagos'}
-                    classNames={{ title: ['font-inter'] }}
-                  >
-                    Lagos
-                  </SelectItem>
-                </Select>
+                <Controller
+                  control={form.control}
+                  name="residenceState"
+                  render={({ field }) => (
+                    <Select
+                      items={resStates || []}
+                      label="Residential State"
+                      isRequired
+                      radius="sm"
+                      className="font-inter font-medium text-xl"
+                      classNames={{
+                        trigger: INPUT_STYLES,
+                      }}
+                      isDisabled={
+                        residenceCountry !== 'NG' &&
+                        residenceCountry !== undefined
+                      }
+                      selectedKeys={
+                        field.value !== undefined ? [field.value] : []
+                      }
+                      disabledKeys={['FR']}
+                      onBlur={field.onBlur}
+                      onChange={field.onChange}
+                    >
+                      {(data) => (
+                        <SelectItem
+                          key={data.code}
+                          value={data.code}
+                          classNames={{ title: ['font-inter'] }}
+                        >
+                          {data.name}
+                        </SelectItem>
+                      )}
+                    </Select>
+                  )}
+                />
 
-                <Select
-                  label="Local Governement of Residence"
-                  placeholder="-Select Local Govt-"
-                  isRequired
-                  radius="sm"
-                  className="font-inter font-medium text-xl"
-                  classNames={{
-                    trigger: INPUT_STYLES,
-                  }}
-                  {...register('residenceLocalGovernmentCode')}
-                >
-                  <SelectItem
-                    key={'Mushin'}
-                    value={'Mushin'}
-                    classNames={{ title: ['font-inter'] }}
-                  >
-                    Mushin
-                  </SelectItem>
-                </Select>
+                <Controller
+                  control={form.control}
+                  name="residenceLocalGovernmentCode"
+                  render={({ field }) => (
+                    <Select
+                      items={resLocalGovt || []}
+                      label="Local Governement of Residence"
+                      isRequired
+                      radius="sm"
+                      className="font-inter font-medium text-xl"
+                      classNames={{
+                        trigger: INPUT_STYLES,
+                      }}
+                      isDisabled={
+                        (residenceCountry !== 'NG' &&
+                          residenceCountry !== undefined) ||
+                        residenceState === ''
+                      }
+                      selectedKeys={
+                        field.value !== undefined ? [field.value] : []
+                      }
+                      onBlur={field.onBlur}
+                      onChange={field.onChange}
+                    >
+                      {(data) => (
+                        <SelectItem
+                          key={data.code}
+                          value={data.code}
+                          classNames={{ title: ['font-inter'] }}
+                        >
+                          {data.name}
+                        </SelectItem>
+                      )}
+                    </Select>
+                  )}
+                />
               </div>
             </AccordionItem>
-          </Accordion>
-
-          <Accordion variant="light">
             <AccordionItem
               key={'3'}
+              className="py-5"
               aria-label="third-accordion"
               subtitle={
                 <span>
@@ -581,13 +779,17 @@ export default function PersonalDetails() {
                 title: ['font-semibold text-xl'],
               }}
             >
-              {/* <Checkbox
-                className="mt-2 mb-5"
-                isSelected={useResAddress}
-                onValueChange={handleUseResAddressChange}
-              >
-                Use Residential Address
-              </Checkbox> */}
+              <div className="p-5 bg-gray-100 mt-2 mb-5 rounded-md">
+                <Checkbox
+                  isSelected={useResAddress}
+                  radius="sm"
+                  onValueChange={handleUseResAddressChange}
+                  classNames={{ label: ['font-medium text-sm'] }}
+                >
+                  Do you want to use residential address as correspondence
+                  address?
+                </Checkbox>
+              </div>
               <div className="grid grid-cols-4 gap-5">
                 <Input
                   type="text"
@@ -599,7 +801,7 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('correspondenceHouseNameOrNumber')}
+                  {...form.register('correspondenceHouseNameOrNumber')}
                 />
 
                 <Input
@@ -612,7 +814,7 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('correspondenceStreetName')}
+                  {...form.register('correspondenceStreetName')}
                 />
 
                 <Input
@@ -625,7 +827,7 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('correspondenceTownCity')}
+                  {...form.register('correspondenceTownCity')}
                 />
 
                 <Input
@@ -637,75 +839,125 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('correspondenceZipCode')}
+                  {...form.register('correspondenceZipCode')}
                 />
 
-                <Select
-                  label="Correspondence Country"
-                  placeholder="-Select Country-"
-                  isRequired
-                  radius="sm"
-                  className="font-inter font-medium text-xl"
-                  classNames={{
-                    trigger: INPUT_STYLES,
-                  }}
-                  {...register('correspondenceCountry')}
-                >
-                  <SelectItem
-                    key={'Nigeria'}
-                    value={'Nigeria'}
-                    classNames={{ title: ['font-inter'] }}
-                  >
-                    Nigeria
-                  </SelectItem>
-                </Select>
+                <Controller
+                  control={form.control}
+                  name="correspondenceCountry"
+                  render={({ field }) => (
+                    <Select
+                      items={
+                        corresCountries?.filter(
+                          (country) => country.name !== ''
+                        ) || []
+                      }
+                      label="Correspondence Country"
+                      isRequired
+                      radius="sm"
+                      isDisabled={useResAddress}
+                      className="font-inter font-medium text-xl"
+                      classNames={{
+                        trigger: INPUT_STYLES,
+                      }}
+                      selectedKeys={
+                        field.value !== undefined ? [field.value] : []
+                      }
+                      onBlur={field.onBlur}
+                      onChange={field.onChange}
+                    >
+                      {(data) => (
+                        <SelectItem
+                          key={data.code}
+                          value={data.code}
+                          classNames={{ title: ['font-inter'] }}
+                        >
+                          {data.name}
+                        </SelectItem>
+                      )}
+                    </Select>
+                  )}
+                />
 
-                <Select
-                  label="State of Residence"
-                  placeholder="-Select State-"
-                  isRequired
-                  radius="sm"
-                  className="font-inter font-medium text-xl"
-                  classNames={{
-                    trigger: INPUT_STYLES,
-                  }}
-                  {...register('correspondenceState')}
-                >
-                  <SelectItem
-                    key={'Lagos'}
-                    value={'Lagos'}
-                    classNames={{ title: ['font-inter'] }}
-                  >
-                    Lagos
-                  </SelectItem>
-                </Select>
+                <Controller
+                  control={form.control}
+                  name="correspondenceState"
+                  render={({ field }) => (
+                    <Select
+                      items={corresStates || []}
+                      label="State of Residence"
+                      isRequired
+                      radius="sm"
+                      className="font-inter font-medium text-xl"
+                      classNames={{
+                        trigger: INPUT_STYLES,
+                      }}
+                      isDisabled={
+                        (correspondenceCountry !== 'NG' &&
+                          correspondenceCountry !== undefined) ||
+                        useResAddress
+                      }
+                      selectedKeys={
+                        field.value !== undefined ? [field.value] : []
+                      }
+                      onBlur={field.onBlur}
+                      onChange={field.onChange}
+                    >
+                      {(data) => (
+                        <SelectItem
+                          key={data.code}
+                          value={data.code}
+                          classNames={{ title: ['font-inter'] }}
+                        >
+                          {data.name}
+                        </SelectItem>
+                      )}
+                    </Select>
+                  )}
+                />
 
-                <Select
-                  label="Local Governement Area"
-                  placeholder="-Select Local Govt-"
-                  isRequired
-                  radius="sm"
-                  className="font-inter font-medium text-xl"
-                  classNames={{
-                    trigger: INPUT_STYLES,
-                  }}
-                  {...register('correspondenceLocalGovernmentCode')}
-                >
-                  <SelectItem
-                    key={'Mushin'}
-                    value={'Mushin'}
-                    classNames={{ title: ['font-inter'] }}
-                  >
-                    Mushin
-                  </SelectItem>
-                </Select>
+                <Controller
+                  control={form.control}
+                  name="correspondenceLocalGovernmentCode"
+                  render={({ field }) => (
+                    <Select
+                      items={corresLocalGovt || []}
+                      label="Local Governement Area"
+                      isRequired
+                      radius="sm"
+                      className="font-inter font-medium text-xl"
+                      classNames={{
+                        trigger: INPUT_STYLES,
+                      }}
+                      isDisabled={
+                        (correspondenceCountry !== 'NG' &&
+                          correspondenceCountry !== undefined) ||
+                        useResAddress ||
+                        correspondenceState === ''
+                      }
+                      selectedKeys={
+                        field.value !== undefined ? [field.value] : []
+                      }
+                      onBlur={field.onBlur}
+                      onChange={field.onChange}
+                    >
+                      {(data) => (
+                        <SelectItem
+                          key={data.code}
+                          value={data.code}
+                          classNames={{ title: ['font-inter'] }}
+                        >
+                          {data.name}
+                        </SelectItem>
+                      )}
+                    </Select>
+                  )}
+                />
               </div>
             </AccordionItem>
-          </Accordion>
-
-          <Accordion variant="light">
             <AccordionItem
               key={'4'}
+              className="py-5"
               aria-label="fourth-accordion"
               subtitle={
                 <span>
@@ -726,7 +978,7 @@ export default function PersonalDetails() {
                   classNames={{
                     trigger: INPUT_STYLES,
                   }}
-                  {...register('bankName')}
+                  {...form.register('bankName')}
                 >
                   <SelectItem
                     key={'Zenith'}
@@ -746,7 +998,7 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('customerAccountNo')}
+                  {...form.register('customerAccountNo')}
                 />
 
                 <Input
@@ -758,7 +1010,7 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('bvn')}
+                  {...form.register('bvn')}
                 />
 
                 <Select
@@ -770,7 +1022,7 @@ export default function PersonalDetails() {
                   classNames={{
                     trigger: INPUT_STYLES,
                   }}
-                  {...register('statementOption')}
+                  {...form.register('statementOption')}
                 >
                   {STATEMENT_OPTION.map((option) => (
                     <SelectItem
@@ -810,11 +1062,11 @@ export default function PersonalDetails() {
               <Button
                 radius="lg"
                 type="submit"
-                isLoading={updateCustomerMutation.isPending}
+                isLoading={updateCustMutation.isPending}
                 color="primary"
                 className="font-inter font-semibold bg-black"
               >
-                {updateCustomerMutation.isPending ? 'Loading' : 'Next'}
+                {updateCustMutation.isPending ? 'Loading' : 'Next'}
               </Button>
             </div>
           </div>
