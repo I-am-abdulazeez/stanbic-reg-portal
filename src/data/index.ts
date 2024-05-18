@@ -1,6 +1,10 @@
 import { DateValue } from '@nextui-org/react';
 
-import { DocumentUploadType, StepOneData, StepTwoData } from 'src/types';
+import {
+  DocumentUploadType,
+  NigeriaOrAbroadType,
+  StoreDocumentUploadType,
+} from 'src/types';
 
 export const INPUT_STYLES = ['border-1 border-solid border-grey-900'];
 
@@ -27,14 +31,40 @@ export const NOK_RELATIONSHIP = [
 ];
 
 export const MARITAL_STATUS = [
-  'Single',
-  'Married',
-  'Divorced',
-  'Separated',
-  'Widowed',
+  {
+    id: 1,
+    title: 'Single',
+  },
+  {
+    id: 2,
+    title: 'Married',
+  },
+  {
+    id: 3,
+    title: 'Divorced',
+  },
+  {
+    id: 4,
+    title: 'Separated',
+  },
+  {
+    id: 5,
+    title: 'Widowed',
+  },
 ];
 
 export const CUSTOMER_TITLE = ['MISS', 'MR', 'MRS', 'MS'];
+
+export const GENDER = [
+  {
+    id: 1,
+    title: 'Male',
+  },
+  {
+    id: 2,
+    title: 'Female',
+  },
+];
 
 export const STATEMENT_OPTION = [
   'Email',
@@ -67,7 +97,7 @@ export const FORM_INIT_VALUES = {
   placeOfBirth: '',
   email: '',
   poBox: '',
-  nigeriaOrAbroad: '',
+  nigeriaOrAbroad: 'N' as NigeriaOrAbroadType,
   residenceCountry: '',
   residenceState: '',
   residenceLocalGovernmentCode: '',
@@ -77,7 +107,7 @@ export const FORM_INIT_VALUES = {
   residenceZipCode: '',
   employerCode: '',
   sectorClass: '',
-  employerNigeriaOrAbroad: '',
+  employerNigeriaOrAbroad: 'N' as NigeriaOrAbroadType,
   employerCountry: '',
   employerState: '',
   employerLocalGovernment: '',
@@ -96,7 +126,7 @@ export const FORM_INIT_VALUES = {
   nokFirstname: '',
   nokMiddlename: '',
   relationship: '',
-  nokNigeriaOrAbroad: '',
+  nokNigeriaOrAbroad: 'N' as NigeriaOrAbroadType,
   nokResidenceCountry: '',
   nokResidenceState: '',
   nokResidenceLocalGovernment: '',
@@ -214,7 +244,7 @@ export const STORE_FORM_INIT_VALUES = {
   placeOfBirth: '',
   email: '',
   poBox: '',
-  nigeriaOrAbroad: '',
+  nigeriaOrAbroad: '' as NigeriaOrAbroadType,
   residenceCountry: '',
   residenceState: '',
   residenceLocalGovernmentCode: '',
@@ -224,7 +254,7 @@ export const STORE_FORM_INIT_VALUES = {
   residenceZipCode: '',
   employerCode: '',
   sectorClass: '',
-  employerNigeriaOrAbroad: '',
+  employerNigeriaOrAbroad: '' as NigeriaOrAbroadType,
   employerCountry: '',
   employerState: '',
   employerLocalGovernment: '',
@@ -243,7 +273,7 @@ export const STORE_FORM_INIT_VALUES = {
   nokFirstname: '',
   nokMiddlename: '',
   relationship: '',
-  nokNigeriaOrAbroad: '',
+  nokNigeriaOrAbroad: '' as NigeriaOrAbroadType,
   nokResidenceCountry: '',
   nokResidenceState: '',
   nokResidenceLocalGovernment: '',
@@ -613,48 +643,9 @@ export const NEW_VALUES = {
   ninUserID: '',
 };
 
-export const STEP_ONE_INIT_VALUES: StepOneData = {
-  sectorClass: '',
-};
-
-export const STEP_TWO_INIT_VALUES: StepTwoData = {
-  nin: '',
-  bvn: '',
-  phoneNumber: '',
-  title: '',
-  surname: '',
-  firstName: '',
-  middleName: '',
-  maidenOrFormerName: '',
-  gender: 0,
-  maritalStatus: 0,
-  nationality: '',
-  stateOfOrigin: '',
-  localGovernmentOfOrigin: '',
-  dateOfBirth: null as unknown as DateValue,
-  placeOfBirth: '',
-  email: '',
-  poBox: '',
-  residenceCountry: '',
-  residenceState: '',
-  residenceLocalGovernmentCode: '',
-  residenceTownCity: '',
-  residenceStreetName: '',
-  residenceHouseNameOrNumber: '',
-  residenceZipCode: '',
-  statementOption: '',
-  correspondenceCountry: '',
-  correspondenceState: '',
-  correspondenceLocalGovernmentCode: '',
-  correspondenceTownCity: '',
-  correspondenceStreetName: '',
-  correspondenceHouseNameOrNumber: '',
-  correspondenceZipCode: '',
-  bankName: '',
-  customerAccountNo: '',
-};
-
 export const FORM_IMAGES: DocumentUploadType = {
+  id: null,
+  customerID: null,
   ninConsents: '',
   clientImages: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
   piDs: '',
@@ -703,10 +694,35 @@ export const DEFAULT_IMAGES = {
   letterOfIndemenitys: '',
 };
 
+export const initialDocsState: StoreDocumentUploadType = {
+  picture: null,
+  signatures: null,
+  ninSlips: null,
+  proofOfIDs: null,
+  letterOfAppointments: null,
+  ninConsent: null,
+  piDs: null,
+  birthCertificates: null,
+  rsaPage1s: null,
+  rsaPage2s: null,
+  expatraiteDocuments: null,
+  transferAcceptanceServices: null,
+  promotionLetterSlips: null,
+  promotionLetterSlip04s: null,
+  promotionLetterSlip07s: null,
+  promotionLetterSlip10s: null,
+  promotionLetterSlip13s: null,
+  promotionLetterSlip16s: null,
+  fullPictures: null,
+  employerConfirmationDocs: null,
+  fingerprintDocuments: null,
+  letterOfIndemenitys: null,
+};
+
 export const ABROAD_DATA = {
-  nokNigeriaOrAbroad: '1',
-  nigeriaOrAbroad: '1',
-  employerNigeriaOrAbroad: '1',
+  nokNigeriaOrAbroad: 'N' as NigeriaOrAbroadType,
+  nigeriaOrAbroad: 'N' as NigeriaOrAbroadType,
+  employerNigeriaOrAbroad: 'N' as NigeriaOrAbroadType,
 };
 
 export const STATUSES = {
