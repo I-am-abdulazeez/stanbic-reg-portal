@@ -9,6 +9,7 @@ import {
   ModalContent,
   ModalFooter,
   ModalHeader,
+  Spinner,
   useDisclosure,
 } from '@nextui-org/react';
 
@@ -19,7 +20,10 @@ import INavbar from 'src/components/INavbar';
 import IFooter from 'src/components/IFooter';
 
 import useStore from 'src/store';
-import { useCustomerByDetails } from 'src/hooks/query/useCustomers';
+import {
+  useCustomerByDetails,
+  useSendToPencom,
+} from 'src/hooks/query/useCustomers';
 
 export default function Summary() {
   const { stepFormData, currentUser } = useStore();
@@ -30,19 +34,21 @@ export default function Summary() {
 
   const navigate = useNavigate();
 
-  const { data: userData } = useCustomerByDetails(
+  const { data: userData, isPending } = useCustomerByDetails(
     currentUser?.email,
     currentUser?.phoneNumber
   );
+
+  const { data } = useSendToPencom(Number(currentUser?.no));
 
   function sendToPencom() {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      toast.success('Submitted to PENCOM sucessfully!', {
+      toast.success('Generating PIN......', {
         position: 'bottom-center',
       });
-      onOpen();
+      // onOpen();
     }, 5000);
   }
 
@@ -50,7 +56,11 @@ export default function Summary() {
     console.log(stepFormData);
   }, [stepFormData]);
 
-  return (
+  return isPending ? (
+    <div className="flex h-screen items-center justify-center">
+      <Spinner />
+    </div>
+  ) : (
     <>
       <div className="font-inter min-h-screen">
         <INavbar />
@@ -71,15 +81,15 @@ export default function Summary() {
             <div className="grid sm:grid-cols-4 grid-cols-2 sm:gap-x-20 sm:gap-y-8 gap-4 mb-10">
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Title</h3>
-                <p>{userData?.temporaryCustomer.title}</p>
+                <p>{userData?.result.title}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Surname</h3>
-                <p>{userData?.temporaryCustomer?.surname.toUpperCase()}</p>
+                <p>{userData?.result?.surname.toUpperCase()}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">First Name</h3>
-                <p>{userData?.temporaryCustomer?.firstName}</p>
+                <p>{userData?.result?.firstName}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Marital Status</h3>
@@ -87,19 +97,19 @@ export default function Summary() {
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Place of Birth</h3>
-                <p>{userData?.temporaryCustomer?.placeOfBirth}</p>
+                <p>{userData?.result?.placeOfBirth}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">
                   Bank Verification Nnumber (BVN)
                 </h3>
-                <p>{userData?.temporaryCustomer?.bvn}</p>
+                <p>{userData?.result?.bvn}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">
                   National Identity Nnumber (NIN)
                 </h3>
-                <p>{userData?.temporaryCustomer?.nin}</p>
+                <p>{userData?.result?.nin}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Gender</h3>
@@ -108,11 +118,11 @@ export default function Summary() {
 
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Bank Name</h3>
-                <p>{userData?.temporaryCustomer?.bankName}</p>
+                <p>{userData?.result?.bankName}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Bank Account Number</h3>
-                <p>{userData?.temporaryCustomer?.customerAccountNo}</p>
+                <p>{userData?.result?.customerAccountNo}</p>
               </div>
             </div>
           </div>
@@ -126,70 +136,63 @@ export default function Summary() {
             <div className="grid sm:grid-cols-4 grid-cols-2 sm:gap-x-20 sm:gap-y-8 gap-4 mb-10">
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Building No./Name</h3>
-                <p>{userData?.temporaryCustomer?.residenceHouseNameOrNumber}</p>
+                <p>{userData?.result?.residenceHouseNameOrNumber}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Street Name</h3>
-                <p>{userData?.temporaryCustomer?.residenceStreetName}</p>
+                <p>{userData?.result?.residenceStreetName}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Village/Town/City</h3>
-                <p>{userData?.temporaryCustomer?.residenceTownCity}</p>
+                <p>{userData?.result?.residenceTownCity}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">State of Residence</h3>
-                <p>{userData?.temporaryCustomer?.residenceState}</p>
+                <p>{userData?.result?.residenceState}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Country of Residence</h3>
-                <p>{userData?.temporaryCustomer?.residenceCountry}</p>
+                <p>{userData?.result?.residenceCountry}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Correspondence Building No.</h3>
-                <p>
-                  {userData?.temporaryCustomer?.correspondenceHouseNameOrNumber}
-                </p>
+                <p>{userData?.result?.correspondenceHouseNameOrNumber}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Correpondence Street Address</h3>
-                <p>{userData?.temporaryCustomer?.correspondenceStreetName}</p>
+                <p>{userData?.result?.correspondenceStreetName}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">
                   Correpondence Village/City/Town
                 </h3>
-                <p>{userData?.temporaryCustomer?.correspondenceTownCity}</p>
+                <p>{userData?.result?.correspondenceTownCity}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Correpondence State</h3>
-                <p>{userData?.temporaryCustomer?.correspondenceState}</p>
+                <p>{userData?.result?.correspondenceState}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Correspodence Country</h3>
-                <p>{userData?.temporaryCustomer?.correspondenceCountry}</p>
+                <p>{userData?.result?.correspondenceCountry}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">
                   Correspodence Local Government
                 </h3>
-                <p>
-                  {
-                    userData?.temporaryCustomer
-                      ?.correspondenceLocalGovernmentCode
-                  }
-                </p>
+                <p>{userData?.result?.correspondenceLocalGovernmentCode}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Mobile</h3>
-                <p>{userData?.temporaryCustomer?.phoneNumber}</p>
+                <p>{userData?.result?.phoneNumber}</p>
               </div>
               {/* <div className="flex flex-col gap-2">
-                <h3 className="font-semibold">Personal Email Address</h3>
-                <p>{userData?.temporaryCustomer?.e}</p>
-              </div> */}
+                  <h3 className="font-semibold">Personal Email Address</h3>
+                  <p>{userData?.result?.e}</p>
+                </div> */}
               <div className="flex flex-col gap-2">
-                <h3 className="font-semibold">Statment Option</h3>
-                <p>{userData?.temporaryCustomer?.stateOfPosting}</p>
+                <h3 className="font-semibold">Statement Option</h3>
+                <p>{userData?.result?.statementOption}</p>
               </div>
             </div>
           </div>
@@ -206,38 +209,36 @@ export default function Summary() {
                 <p>RSA</p>
               </div>
               <div className="flex flex-col gap-2">
-                <h3 className="font-semibold">Employement Name</h3>
-                <p>{userData?.temporaryCustomer?.employerName}</p>
+                <h3 className="font-semibold">Employment Name</h3>
+                <p>{userData?.result?.employerName}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Employer Phone Number</h3>
-                <p>{userData?.temporaryCustomer?.employerPhoneNumber}</p>
+                <p>{userData?.result?.employerPhoneNumber}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Employer Building Number/Name</h3>
-                <p>
-                  {userData?.temporaryCustomer?.employerBuildingNameOrNumber}
-                </p>
+                <p>{userData?.result?.employerBuildingNameOrNumber}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Employer Street Name</h3>
-                <p>{userData?.temporaryCustomer?.employerStreetName}</p>
+                <p>{userData?.result?.employerStreetName}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Employer Village/Town/City</h3>
-                <p>{userData?.temporaryCustomer?.employerTownCity}</p>
+                <p>{userData?.result?.employerTownCity}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Employer State</h3>
-                <p>{userData?.temporaryCustomer?.employerState}</p>
+                <p>{userData?.result?.employerState}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Employer Local Government</h3>
-                <p>{userData?.temporaryCustomer?.employerLocalGovernment}</p>
+                <p>{userData?.result?.employerLocalGovernment}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Staff ID</h3>
-                <p>{userData?.temporaryCustomer?.staffFileNo}</p>
+                <p>{userData?.result?.staffFileNo}</p>
               </div>
             </div>
           </div>
@@ -251,42 +252,42 @@ export default function Summary() {
             <div className="grid sm:grid-cols-4 grid-cols-2 sm:gap-x-20 sm:gap-y-8 gap-4 mb-10">
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Title</h3>
-                <p>MR</p>
+                <p>{userData?.result?.nokTitle}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Gender</h3>
-                <p>Male</p>
+                <p>{userData?.result.nokGender}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Relationship</h3>
-                <p>BROTHER</p>
+                <p>{userData?.result?.relationship}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Surname</h3>
-                <p>OLANREWAJU</p>
+                <p>{userData?.result?.nokSurname}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">First Name</h3>
-                <p>MUBARAK</p>
+                <p>{userData?.result?.nokFirstname}</p>
               </div>
 
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Building No./Name</h3>
-                <p>12</p>
+                <p>{userData?.result?.nokResidenceHouseNumber}</p>
               </div>
 
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Street Name</h3>
-                <p>EUBA</p>
+                <p>{userData?.result?.nokResidenceStreetName}</p>
               </div>
 
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Village Town/City</h3>
-                <p>FADEYI</p>
+                <p>{userData?.result?.nokResidenceTownCity}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Mobile No</h3>
-                <p>08023143609</p>
+                <p>{userData?.result?.nokPhoneNumber}</p>
               </div>
             </div>
           </div>
