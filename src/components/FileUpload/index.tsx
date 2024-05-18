@@ -1,4 +1,4 @@
-import React, { MouseEventHandler, useState } from 'react';
+import React, { MouseEventHandler, useEffect, useState } from 'react';
 
 import {
   Modal,
@@ -13,12 +13,14 @@ import { FileUploadProps } from 'src/types';
 const FileUpload = (props: FileUploadProps) => {
   const { isOpen, onClose, onOpen } = useDisclosure();
   const [file, setFile] = useState<File | null>(null);
+  const [fileName, setFileName] = useState<string>('');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const selectedFile = e.target.files[0];
       setFile(selectedFile);
       props.onFileChange(selectedFile, props.fileType);
+      setFileName(selectedFile.name);
     }
   };
 
@@ -28,6 +30,10 @@ const FileUpload = (props: FileUploadProps) => {
       onOpen();
     }
   };
+
+  useEffect(() => {
+    setFile(props.defaultFile);
+  }, [props.defaultFile]);
 
   return (
     <div className="flex flex-col">
@@ -64,15 +70,18 @@ const FileUpload = (props: FileUploadProps) => {
           onClick={handleFileClick}
           className="border border-green-500 cursor-pointer bg-green-100 text-green-800 px-2 py-1 mt-2 rounded-md"
         >
-          Preview: {file.name}
+          Preview: {fileName || file.name}
         </div>
       )}
       {file && (
         <Modal isOpen={isOpen} onClose={onClose} placement="center">
           <ModalContent>
-            <ModalHeader>{file.name}</ModalHeader>
+            <ModalHeader>{fileName || file.name}</ModalHeader>
             <ModalBody>
-              <img src={URL.createObjectURL(file)} alt={file.name} />
+              <img
+                src={URL.createObjectURL(file)}
+                alt={fileName || file.name}
+              />
             </ModalBody>
           </ModalContent>
         </Modal>
