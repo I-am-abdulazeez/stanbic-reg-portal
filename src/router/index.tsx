@@ -11,35 +11,64 @@ import DocsUpload from 'src/pages/DocsUpload/index.tsx';
 import Summary from 'src/pages/Summary/index.tsx';
 
 import App from 'src/App.tsx';
+import PrivateRoute from 'src/components/PrivateRoute';
 
 export const Router = createBrowserRouter([
   { path: '/', element: <App /> },
   {
     path: '/confirm-otp',
-    element: <OTP />,
+    element: (
+      <PrivateRoute>
+        <OTP />
+      </PrivateRoute>
+    ),
   },
   {
     path: '/step-one',
-    element: <SelectProduct />,
+    element: (
+      <PrivateRoute>
+        <SelectProduct />
+      </PrivateRoute>
+    ),
   },
   {
     path: '/step-two',
-    element: <PersonalDetails />,
+    element: (
+      <PrivateRoute>
+        <PersonalDetails />
+      </PrivateRoute>
+    ),
   },
   {
     path: '/step-three',
-    element: <EmploymentRecord />,
+    element: (
+      <PrivateRoute>
+        <EmploymentRecord />
+      </PrivateRoute>
+    ),
   },
   {
     path: '/step-four',
-    element: <NOKBio />,
+    element: (
+      <PrivateRoute>
+        <NOKBio />
+      </PrivateRoute>
+    ),
   },
   {
     path: '/step-five',
-    element: <DocsUpload />,
+    element: (
+      <PrivateRoute>
+        <DocsUpload />
+      </PrivateRoute>
+    ),
   },
   {
     path: '/summary',
-    element: <Summary />,
+    element: (
+      <PrivateRoute>
+        <Summary />
+      </PrivateRoute>
+    ),
   },
 ]);
