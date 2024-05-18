@@ -1,8 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { fetchTempCustomers, fetchTempCustomerByDetails } from 'src/api';
+import {
+  fetchTempCustomers,
+  fetchTempCustomerByDetails,
+  fetchTempCustomerImage,
+  sendCustomerToPencom,
+} from 'src/api';
 
-import { RegFormType } from 'src/types';
+import { DocumentUploadType, RegFormType } from 'src/types';
 
 function useCustomer() {
   const customers = useQuery({
@@ -14,14 +19,14 @@ function useCustomer() {
   return customers;
 }
 
-function useCustomerByDetails(
-  email: string | undefined,
-  phoneNumber: string | undefined
-) {
-  const customerByDetails = useQuery<{
-    status: number;
-    temporaryCustomer: RegFormType;
-  }>({
+function useCustomerByDetails(email: string, phoneNumber: string) {
+  const customerByDetails = useQuery<
+    {
+      status: number;
+      result: RegFormType;
+    },
+    Error
+  >({
     queryKey: ['existing_temp_customer', email, phoneNumber],
     queryFn: () => fetchTempCustomerByDetails({ email, phoneNumber }),
     refetchInterval: 5000,
@@ -30,4 +35,28 @@ function useCustomerByDetails(
   return customerByDetails;
 }
 
-export { useCustomer, useCustomerByDetails };
+function useCustomerImage(id: number | null, customerID: number | null) {
+  const customerImage = useQuery<{
+    status: number;
+    temporaryImages: DocumentUploadType[];
+  }>({
+    queryKey: ['existing_cust_images', customerID, id],
+    queryFn: () => fetchTempCustomerImage({ customerID, id }),
+    refetchInterval: 5000,
+    // enabled: id !== null,
+  });
+
+  return customerImage;
+}
+
+function useSendToPencom(no: number) {
+  const sendToPen = useQuery({
+    queryKey: ['existing_cust_images', no],
+    queryFn: () => sendCustomerToPencom(no),
+    refetchInterval: 5000,
+  });
+
+  return sendToPen;
+}
+
+export { useCustomer, useCustomerByDetails, useCustomerImage, useSendToPencom };
