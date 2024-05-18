@@ -7,6 +7,7 @@ import {
   createTempCustomerImage,
   fetchTempCustomerByDetails,
   updateTempCustomerDetails,
+  updateTempCustomerImage,
 } from 'src/api';
 import { Router } from 'src/router';
 
@@ -14,6 +15,7 @@ import {
   CurrentCustomer,
   DocumentUploadType,
   ExistingCustomer,
+  ImageIDs,
   TempPostData,
   TempPostImage,
   formStepData,
@@ -28,10 +30,10 @@ function useCreateCustMutation() {
       useStore.setState((state) => ({
         ...state,
         currentUser: {
+          ...state.currentUser,
           email: data.email,
           phoneNumber: data.phoneNumber,
           no: data.no,
-          imageId: null,
         },
       }));
       toast.success('Please confirm OTP sent to your phone number', {
@@ -49,10 +51,10 @@ function useCreateCustMutation() {
       useStore.setState((state) => ({
         ...state,
         currentUser: {
+          ...state.currentUser,
           email: '',
           phoneNumber: '',
           no: null,
-          imageId: null,
         },
       }));
     },
@@ -67,16 +69,17 @@ function useActiveCustMutation() {
     Error,
     CurrentCustomer
   >({
-    mutationKey: ['customer-image'],
+    mutationKey: ['customer-active'],
     mutationFn: fetchTempCustomerByDetails,
     onSuccess: (data) => {
       useStore.setState((state) => ({
         ...state,
         currentUser: {
-          email: data.temporaryCustomer.email,
-          phoneNumber: data.temporaryCustomer.phoneNumber,
-          no: data.temporaryCustomer.no,
-          imageId: null,
+          ...state.currentUser,
+          email: data.result.email,
+          phoneNumber: data.result.phoneNumber,
+          no: data.result.no,
+          imageId: data?.imageID,
         },
       }));
       toast.success(`Welcome back, ${useStore.getState().currentUser?.email}`, {
@@ -94,10 +97,10 @@ function useActiveCustMutation() {
       useStore.setState((state) => ({
         ...state,
         currentUser: {
+          ...state.currentUser,
           email: '',
           phoneNumber: '',
           no: null,
-          imageId: null,
         },
       }));
     },
@@ -117,7 +120,6 @@ function useUpdateCustMutation<TData extends formStepData>(
     mutationKey: ['customer-details'],
     mutationFn: (data: TData) => updateTempCustomerDetails(data),
     onSuccess: (data) => {
-      console.log(data);
       setTimeout(() => {
         toast.success(`Data Saved...`, {
           position: 'bottom-center',
@@ -142,7 +144,7 @@ function useCreateImageMutation() {
   const createCustomerImageMutation = useMutation<
     TempPostImage,
     Error,
-    DocumentUploadType
+    Omit<DocumentUploadType, 'id' | 'customerID'>
   >({
     mutationKey: ['customer-details'],
     mutationFn: createTempCustomerImage,
@@ -172,7 +174,6 @@ function useCreateImageMutation() {
         ...state,
         currentUser: {
           ...state.currentUser,
-          imageId: null,
         },
       }));
     },
@@ -181,9 +182,39 @@ function useCreateImageMutation() {
   return createCustomerImageMutation;
 }
 
+function useUpdateImageMutation() {
+  const updateImageMutation = useMutation<
+    TempPostImage,
+    Error,
+    DocumentUploadType
+  >({
+    mutationKey: ['update_cust_image'],
+    mutationFn: (data: ImageIDs) =>
+      updateTempCustomerImage({ customerID: data?.customerID, id: data?.id }),
+    onSuccess: (data) => {
+      setTimeout(() => {
+        toast.success(`${data.message}`, {
+          position: 'bottom-center',
+          duration: 4000,
+        });
+      }, 1000);
+      Router.navigate('/summary');
+    },
+    onError: (err) => {
+      toast.error(err.message, {
+        position: 'bottom-center',
+        duration: 4000,
+      });
+    },
+  });
+
+  return updateImageMutation;
+}
+
 export {
   useCreateCustMutation,
   useActiveCustMutation,
   useUpdateCustMutation,
+  useUpdateImageMutation,
   useCreateImageMutation,
 };
