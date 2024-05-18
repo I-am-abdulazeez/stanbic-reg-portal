@@ -2,13 +2,19 @@ import { create } from 'zustand';
 
 import { persist } from 'zustand/middleware';
 
-import { STORE_FORM_INIT_VALUES } from 'src/data';
+import { STORE_FORM_INIT_VALUES, initialDocsState } from 'src/data';
 
-import { IStoreActions, IStoreState } from 'src/types';
+import { IStoreActions, IStoreState, StoreDocumentUploadType } from 'src/types';
 
 const initialState: IStoreState = {
   currentRoute: '/step-1',
-  currentUser: { email: '', phoneNumber: '', no: null, imageId: null },
+  currentUser: {
+    email: '',
+    phoneNumber: '',
+    no: null,
+    imageId: null,
+  },
+  currentUserDocs: initialDocsState,
 
   stepFormData: STORE_FORM_INIT_VALUES,
 };
@@ -19,6 +25,7 @@ const useStore = create<IStoreState & IStoreActions>()(
       currentRoute: initialState.currentRoute,
       currentUser: initialState.currentUser,
       stepFormData: initialState.stepFormData,
+      currentUserDocs: initialState.currentUserDocs,
 
       setCurrentRoute: (route: string) => set({ currentRoute: route }),
       setCurrentUser: (user) => {
@@ -30,6 +37,15 @@ const useStore = create<IStoreState & IStoreActions>()(
         set({
           stepFormData: { ...initialState.stepFormData, ...data },
         });
+      },
+
+      setCurrentUserDocs: (data: Partial<StoreDocumentUploadType>) => {
+        set((state) => ({
+          currentUserDocs: {
+            ...state.currentUserDocs,
+            ...data,
+          },
+        }));
       },
     }),
     {
