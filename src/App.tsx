@@ -24,20 +24,17 @@ import {
 } from 'src/hooks/mutation/useCustMutations';
 
 import { RegFormType } from 'src/types';
+import { useCustStates } from './hooks/query/useLocation';
 
 function App() {
   const [existing, setExisting] = useState(false);
 
   const { data } = useCustomer();
+  const { data: stateData } = useCustStates();
   const custMutation = useCreateCustMutation();
   const existingCustMutation = useActiveCustMutation();
 
-  const {
-    register,
-    formState: { errors },
-    handleSubmit,
-    control,
-  } = useForm<RegFormType>();
+  const { register, formState, handleSubmit, control } = useForm<RegFormType>();
 
   const { currentUser } = useStore();
 
@@ -64,7 +61,6 @@ function App() {
 
   useEffect(() => {
     console.log(data);
-    console.log(currentUser);
   }, [data, currentUser]);
 
   return (
@@ -161,7 +157,7 @@ function App() {
                       <DateInput
                         label={'Date of Birth'}
                         isRequired
-                        isInvalid={Boolean(errors.dateOfBirth)}
+                        isInvalid={Boolean(formState.errors.dateOfBirth)}
                         radius="sm"
                         onChange={onChange}
                         value={value}
@@ -170,7 +166,7 @@ function App() {
                           inputWrapper: INPUT_STYLES,
                         }}
                       />
-                      {errors.dateOfBirth && (
+                      {formState.errors.dateOfBirth && (
                         <p className="text-danger text-xs font-inter">
                           Please fill out this field.
                         </p>
@@ -180,25 +176,37 @@ function App() {
                 />
               )}
               {!existing && (
-                <Select
-                  label="State of Residence"
-                  placeholder="-Select state-"
-                  isRequired
-                  radius="sm"
-                  className="font-inter font-medium text-xl"
-                  classNames={{
-                    trigger: INPUT_STYLES,
-                  }}
-                  {...register('residenceState')}
-                >
-                  <SelectItem
-                    key={'Lagos'}
-                    value={'Lagos'}
-                    classNames={{ title: ['font-inter'] }}
-                  >
-                    Lagos
-                  </SelectItem>
-                </Select>
+                <Controller
+                  control={control}
+                  name="residenceState"
+                  render={({ field }) => (
+                    <Select
+                      items={stateData || []}
+                      label="State of Residence"
+                      placeholder="-Select State-"
+                      radius="sm"
+                      className="font-inter font-medium text-xl"
+                      classNames={{
+                        trigger: INPUT_STYLES,
+                      }}
+                      selectedKeys={
+                        field.value !== undefined ? [field.value] : []
+                      }
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                    >
+                      {(data) => (
+                        <SelectItem
+                          key={data?.code}
+                          value={data?.code}
+                          classNames={{ title: ['font-inter'] }}
+                        >
+                          {data.name}
+                        </SelectItem>
+                      )}
+                    </Select>
+                  )}
+                />
               )}
 
               <div className="flex justify-end">
