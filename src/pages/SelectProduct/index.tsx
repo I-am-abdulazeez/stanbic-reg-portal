@@ -1,6 +1,4 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-
 import { Button, Divider, Progress, RadioGroup } from '@nextui-org/react';
 
 import { Controller, useForm } from 'react-hook-form';
@@ -9,7 +7,10 @@ import INavbar from 'src/components/INavbar';
 import IFooter from 'src/components/IFooter';
 import CustomRadio from 'src/components/CustomRadio';
 
-import { useCustomer } from 'src/hooks/query/useCustomers';
+import useStore from 'src/store';
+import { ABROAD_DATA, DEFAULT_FORM_VALUES, STATUSES } from 'src/data';
+
+import { useCustomerByDetails } from 'src/hooks/query/useCustomers';
 import { useUpdateCustMutation } from 'src/hooks/mutation/useCustMutations';
 
 import { RegFormType, formStepData } from 'src/types';
@@ -17,21 +18,39 @@ import { RegFormType, formStepData } from 'src/types';
 type SectorClassType = Pick<RegFormType, 'sectorClass'>;
 
 export default function SelectProduct() {
-  const navigate = useNavigate();
+  const { stepFormData, currentUser } = useStore();
 
-  const { handleSubmit, control } = useForm<SectorClassType>();
+  const {
+    handleSubmit,
+    control,
+    formState: { isDirty, isValid },
+  } = useForm<SectorClassType>();
 
-  const { data } = useCustomer();
-  const {} = useUpdateCustMutation<formStepData>('/step-two');
+  const { data } = useCustomerByDetails(
+    currentUser?.email,
+    currentUser?.phoneNumber
+  );
+
+  const updateCustMutation = useUpdateCustMutation<formStepData>('/step-two');
 
   function onSubmit(data: SectorClassType) {
     console.log(data);
-    navigate('/step-two');
+    const newData = {
+      ...stepFormData,
+      ...DEFAULT_FORM_VALUES,
+      ...STATUSES,
+      ...ABROAD_DATA,
+      sectorClass: data.sectorClass,
+    };
+    console.log(newData);
+
+    updateCustMutation.mutate(newData);
   }
 
   useEffect(() => {
     console.log(data);
-  }, [data]);
+    console.log(currentUser);
+  }, [data, isDirty, isValid, currentUser]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
@@ -83,6 +102,8 @@ export default function SelectProduct() {
               type="submit"
               color="primary"
               className="font-inter font-semibold bg-black"
+              isDisabled={!isValid || !isDirty}
+              isLoading={updateCustMutation.isPending}
             >
               Next
             </Button>
