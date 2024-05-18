@@ -1,5 +1,7 @@
 import { DateValue } from '@nextui-org/react';
 
+export type NigeriaOrAbroadType = 'N' | 'A';
+
 export type RegFormType = {
   no: number;
   registrationType: number;
@@ -22,7 +24,7 @@ export type RegFormType = {
   placeOfBirth: string;
   email: string;
   poBox: string;
-  nigeriaOrAbroad: string;
+  nigeriaOrAbroad: NigeriaOrAbroadType;
   residenceCountry: string;
   residenceState: string;
   residenceLocalGovernmentCode: string;
@@ -32,7 +34,7 @@ export type RegFormType = {
   residenceZipCode: string;
   employerCode: string;
   sectorClass: string;
-  employerNigeriaOrAbroad: string;
+  employerNigeriaOrAbroad: NigeriaOrAbroadType;
   employerCountry: string;
   employerState: string;
   employerLocalGovernment: string;
@@ -51,7 +53,7 @@ export type RegFormType = {
   nokFirstname: string;
   nokMiddlename: string;
   relationship: string;
-  nokNigeriaOrAbroad: string;
+  nokNigeriaOrAbroad: NigeriaOrAbroadType;
   nokResidenceCountry: string;
   nokResidenceState: string;
   nokResidenceLocalGovernment: string;
@@ -236,31 +238,60 @@ export type formStepData = Omit<
   dateOfCurrentEmployment: string | undefined;
 };
 
-// export type StepThreeData = Pick<RegFormType, ''>;
-
 export type IStoreState = {
   currentRoute: string;
-  currentUser: CurrentCustomer & { imageId: number | null };
+  currentUser: CurrentCustomer & {
+    imageId: number | null;
+  };
+  currentUserDocs: StoreDocumentUploadType;
 
   stepFormData: formStepData;
 };
 
+export type StoreDocumentUploadType = {
+  picture: base64Type;
+  signatures: base64Type;
+  ninSlips: base64Type;
+  proofOfIDs: base64Type;
+  letterOfAppointments: base64Type;
+  ninConsent: base64Type;
+  piDs: base64Type;
+  birthCertificates: base64Type;
+  rsaPage1s: base64Type;
+  rsaPage2s: base64Type;
+  expatraiteDocuments: base64Type;
+  transferAcceptanceServices: base64Type;
+  promotionLetterSlips: base64Type;
+  promotionLetterSlip04s: base64Type;
+  promotionLetterSlip07s: base64Type;
+  promotionLetterSlip10s: base64Type;
+  promotionLetterSlip13s: base64Type;
+  promotionLetterSlip16s: base64Type;
+  fullPictures: base64Type;
+  employerConfirmationDocs: base64Type;
+  fingerprintDocuments: base64Type;
+  letterOfIndemenitys: base64Type;
+};
+
 export type IStoreActions = {
   setCurrentRoute: (route: string) => void;
-  setCurrentUser: (user: CurrentCustomer) => void;
+  setCurrentUser: (user: CurrentCustomer & { imageId: number | null }) => void;
   setStepFormData: (data: formStepData) => void;
+
+  setCurrentUserDocs: (data: StoreDocumentUploadType) => void;
 };
 
 export type FileType = 'passport' | 'signature' | 'NIN' | 'POA' | 'EOE';
 
+export type UserDetails = Pick<RegFormType, 'email' | 'phoneNumber'>;
+
 export type ExistingCustomer = {
   status: number;
-  temporaryCustomer: RegFormType;
+  result: RegFormType;
+  imageID: number;
 };
 
-export type CurrentCustomer = {
-  email: string | undefined;
-  phoneNumber: string | undefined;
+export type CurrentCustomer = UserDetails & {
   no: number | null;
 };
 
@@ -277,7 +308,11 @@ export type TempPostData = CurrentCustomer & {
 
 export type base64Type = string | ArrayBuffer | null;
 
+export type ImageIDs = Pick<DocumentUploadType, 'customerID' | 'id'>;
+
 export type DocumentUploadType = {
+  id: number | null;
+  customerID: number | null;
   ninConsents: string;
   clientImages: string;
   piDs: string;
@@ -318,4 +353,10 @@ export type FileUploadProps = {
   label: string;
   accept: string;
   onFileChange: (file: File, fileType: FileType) => void;
+  defaultFile: File | null;
+};
+
+export type CountryType = {
+  code: string;
+  name: string;
 };
