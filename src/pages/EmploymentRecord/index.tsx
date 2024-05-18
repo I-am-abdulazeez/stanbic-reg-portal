@@ -29,7 +29,7 @@ import { RegFormType, StepThreeData, formStepData } from 'src/types';
 export default function EmploymentRecord() {
   const navigate = useNavigate();
 
-  const { currentUser, stepFormData, setStepFormData } = useStore();
+  const { currentUser, stepFormData } = useStore();
   const updateCustomerMutation =
     useUpdateCustMutation<formStepData>('/step-four');
 
@@ -65,13 +65,16 @@ export default function EmploymentRecord() {
       employerStreetName: data.employerStreetName,
       employerTownCity: data.employerTownCity,
       employerZipCode: data.employerZipCode,
+      staffFileNo: data.staffFileNo,
+      currentGradeLevel: data?.currentGradeLevel,
+      currentStep: data.currentStep,
       ...STATUSES,
       ...ABROAD_DATA,
       dateOfFirstAppointment: formattedDateA,
       dateOfCurrentEmployment: formattedDateB,
     };
     console.log(newData);
-    setStepFormData(newData);
+    // setStepFormData(newData);
     updateCustomerMutation.mutate(newData);
   }
 
@@ -79,28 +82,24 @@ export default function EmploymentRecord() {
     if (currentUser.email !== '') {
       reset(
         {
-          employerName: userData?.temporaryCustomer.employerName || '',
-          employerPhoneNumber:
-            userData?.temporaryCustomer.employerPhoneNumber || '',
-          employerStreetName:
-            userData?.temporaryCustomer.employerStreetName || '',
-          employerTownCity: userData?.temporaryCustomer.employerTownCity || '',
-          employerZipCode: userData?.temporaryCustomer.employerZipCode || '',
-          employerState: userData?.temporaryCustomer.employerState || '',
-          employerPOBox: userData?.temporaryCustomer.employerPOBox || '',
-          employerCountry: userData?.temporaryCustomer.employerCountry || '',
+          employerName: userData?.result.employerName || '',
+          employerPhoneNumber: userData?.result.employerPhoneNumber || '',
+          employerStreetName: userData?.result.employerStreetName || '',
+          employerTownCity: userData?.result.employerTownCity || '',
+          employerZipCode: userData?.result.employerZipCode || '',
+          employerState: userData?.result.employerState || '',
+          employerPOBox: userData?.result.employerPOBox || '',
+          employerCountry: userData?.result.employerCountry || '',
           employerLocalGovernment:
-            userData?.temporaryCustomer.employerLocalGovernment || '',
-          designation: userData?.temporaryCustomer.designation || '',
-          staffFileNo: userData?.temporaryCustomer.staffFileNo || '',
-          currentGradeLevel:
-            userData?.temporaryCustomer.currentGradeLevel || '',
-          currentStep: userData?.temporaryCustomer.currentStep || '',
+            userData?.result.employerLocalGovernment || '',
+          designation: userData?.result.designation || '',
+          staffFileNo: userData?.result.staffFileNo || '',
+          currentGradeLevel: userData?.result.currentGradeLevel || '',
+          currentStep: userData?.result.currentStep || '',
         },
         { keepDirtyValues: true, keepValues: true }
       );
-      console.log(userData?.temporaryCustomer?.employerName);
-      // console.log(stepOneData);
+      console.log(userData?.result?.employerName);
     }
     console.log(currentUser);
   }, [userData, currentUser]);
@@ -121,9 +120,10 @@ export default function EmploymentRecord() {
 
           {/* <Divider className="my-10 mx-auto" /> */}
 
-          <Accordion defaultExpandedKeys={['2']}>
+          <Accordion defaultExpandedKeys={['1']} selectionMode="multiple">
             <AccordionItem
               key={'1'}
+              className="py-5"
               aria-label="first-accordion"
               title="Employer Data"
               subtitle={
@@ -308,11 +308,9 @@ export default function EmploymentRecord() {
                 />
               </div>
             </AccordionItem>
-          </Accordion>
-
-          <Accordion>
             <AccordionItem
               key={'2'}
+              className="py-5"
               aria-label="second-accordion"
               subtitle={
                 <span>
@@ -352,7 +350,7 @@ export default function EmploymentRecord() {
                   render={({ field: { onChange, value } }) => (
                     <div>
                       <DateInput
-                        label={'Date of First Employement'}
+                        label={'Date of First Employment'}
                         isRequired
                         isInvalid={Boolean(errors.dateOfFirstAppointment)}
                         radius="sm"
@@ -409,11 +407,9 @@ export default function EmploymentRecord() {
                 /> */}
               </div>
             </AccordionItem>
-          </Accordion>
-
-          <Accordion>
             <AccordionItem
               key={'3'}
+              className="py-5"
               aria-label="third-accordion"
               subtitle={
                 <span>
