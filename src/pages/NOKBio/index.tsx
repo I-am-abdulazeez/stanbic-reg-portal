@@ -48,24 +48,23 @@ export default function NOKBio() {
     const newData = {
       ...NEW_VALUES,
       ...stepFormData,
-      nokTitle: data.nokTitle,
-      nokEmail: data.nokEmail,
-      nokFirstname: data.nokFirstname,
-      nokSurname: data.nokSurname,
-      nokMiddlename: data.nokMiddlename,
-      nokPhoneNumber: data.nokPhoneNumber,
-      nokResidenceCountry: data.nokResidenceCountry,
-      nokResidenceHouseNumber: data.nokResidenceHouseNumber,
-      nokResidenceState: data.nokResidenceState,
-      nokResidenceLocalGovernment: data.nokResidenceLocalGovernment,
-      nokResidenceTownCity: data.nokResidenceTownCity,
-      nokpoBox: data.nokpoBox || '',
-      nokZipCode: data.nokZipCode || '',
-      nokResidenceStreetName: data.nokResidenceStreetName,
+      nokTitle: data?.nokTitle,
+      nokEmail: data?.nokEmail,
+      nokFirstname: data?.nokFirstname,
+      nokSurname: data?.nokSurname,
+      nokMiddlename: data?.nokMiddlename,
+      nokPhoneNumber: data?.nokPhoneNumber,
+      nokResidenceCountry: data?.nokResidenceCountry,
+      nokResidenceHouseNumber: data?.nokResidenceHouseNumber,
+      nokResidenceState: data?.nokResidenceState,
+      nokResidenceLocalGovernment: data?.nokResidenceLocalGovernment,
+      nokResidenceTownCity: data?.nokResidenceTownCity,
+      nokpoBox: data?.nokpoBox || '',
+      nokZipCode: data?.nokZipCode || '',
+      nokResidenceStreetName: data?.nokResidenceStreetName,
       ...STATUSES,
       ...ABROAD_DATA,
     };
-    setStepFormData(newData);
     updateCustomerMutation.mutate(newData);
   }
 
@@ -73,26 +72,22 @@ export default function NOKBio() {
     if (currentUser.email !== '') {
       reset(
         {
-          nokTitle: userData?.temporaryCustomer.nokTitle || '',
-          nokEmail: userData?.temporaryCustomer.nokEmail || '',
-          nokFirstname: userData?.temporaryCustomer.nokFirstname || '',
-          nokSurname: userData?.temporaryCustomer.nokSurname || '',
-          nokMiddlename: userData?.temporaryCustomer.nokMiddlename || '',
-          nokPhoneNumber: userData?.temporaryCustomer.nokPhoneNumber || '',
-          nokResidenceCountry:
-            userData?.temporaryCustomer.nokResidenceCountry || '',
+          nokTitle: userData?.result.nokTitle || '',
+          nokEmail: userData?.result.nokEmail || '',
+          nokFirstname: userData?.result.nokFirstname || '',
+          nokSurname: userData?.result.nokSurname || '',
+          nokMiddlename: userData?.result.nokMiddlename || '',
+          nokPhoneNumber: userData?.result.nokPhoneNumber || '',
+          nokResidenceCountry: userData?.result.nokResidenceCountry || '',
           nokResidenceHouseNumber:
-            userData?.temporaryCustomer.nokResidenceHouseNumber || '',
-          nokResidenceState:
-            userData?.temporaryCustomer.nokResidenceState || '',
+            userData?.result.nokResidenceHouseNumber || '',
+          nokResidenceState: userData?.result.nokResidenceState || '',
           nokResidenceLocalGovernment:
-            userData?.temporaryCustomer.nokResidenceLocalGovernment || '',
-          nokResidenceTownCity:
-            userData?.temporaryCustomer.nokResidenceTownCity || '',
-          nokpoBox: userData?.temporaryCustomer.nokpoBox || '',
-          nokZipCode: userData?.temporaryCustomer.nokZipCode || '',
-          nokResidenceStreetName:
-            userData?.temporaryCustomer.nokResidenceStreetName || '',
+            userData?.result.nokResidenceLocalGovernment || '',
+          nokResidenceTownCity: userData?.result.nokResidenceTownCity || '',
+          nokpoBox: userData?.result.nokpoBox || '',
+          nokZipCode: userData?.result.nokZipCode || '',
+          nokResidenceStreetName: userData?.result.nokResidenceStreetName || '',
         },
         { keepDirtyValues: true, keepValues: true }
       );
@@ -116,9 +111,10 @@ export default function NOKBio() {
 
           {/* <Divider className="my-10 mx-auto" /> */}
 
-          <Accordion>
+          <Accordion defaultExpandedKeys={['1']} selectionMode="multiple">
             <AccordionItem
               key={'1'}
+              className="py-5"
               aria-label="first-accordion"
               title="Next of Kin"
               subtitle={
@@ -240,11 +236,9 @@ export default function NOKBio() {
                 </Select>
               </div>
             </AccordionItem>
-          </Accordion>
-
-          <Accordion>
             <AccordionItem
               key={'2'}
+              className="py-5"
               aria-label="second-accordion"
               subtitle={
                 <span>Expand each section and compelete your NOK address</span>
