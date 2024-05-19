@@ -1,5 +1,9 @@
 import { DateValue } from '@nextui-org/react';
-import { getLocalTimeZone } from '@internationalized/date';
+import {
+  CalendarDate,
+  getLocalTimeZone,
+  parseDate,
+} from '@internationalized/date';
 import useStore from 'src/store';
 import { StoreDocumentUploadType, base64Type } from 'src/types';
 
@@ -12,7 +16,7 @@ export function isValidISODate(dateString: string): boolean {
   }
 }
 
-export function DateToString(date: DateValue) {
+export function parseCalendarDateToISO(date: DateValue) {
   const dateString = date.toDate(getLocalTimeZone()).toISOString();
 
   if (!isValidISODate(dateString)) {
@@ -23,6 +27,22 @@ export function DateToString(date: DateValue) {
   const formattedDate = dateString;
 
   return formattedDate;
+}
+
+export function parseISOToCalendarDate(
+  isoString: string
+): CalendarDate | undefined {
+  try {
+    if (!isoString) {
+      return;
+    }
+    // Extract the date part of the ISO string
+    const datePart = isoString.split('T')[0];
+    return parseDate(datePart);
+  } catch (error) {
+    // Fallback to a default date if parsing fails
+    return undefined;
+  }
 }
 
 export function getBlobFromFile(
