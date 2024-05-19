@@ -227,6 +227,7 @@ export type StepFourData = Pick<
   | 'nokpoBox'
   | 'nokZipCode'
   | 'nokResidenceStreetName'
+  | 'nokGender'
 >;
 
 export type formStepData = Omit<
