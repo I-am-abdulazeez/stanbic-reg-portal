@@ -1,16 +1,17 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
   Accordion,
   AccordionItem,
   Button,
+  Checkbox,
   Divider,
   Input,
   Progress,
   Select,
   SelectItem,
 } from '@nextui-org/react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 
 import IFooter from 'src/components/IFooter';
@@ -22,34 +23,82 @@ import {
   NOK_RELATIONSHIP,
   INPUT_STYLES,
   NEW_VALUES,
-  ABROAD_DATA,
-  STATUSES,
 } from 'src/data';
 
 import { useCustomerByDetails } from 'src/hooks/query/useCustomers';
 import { useUpdateCustMutation } from 'src/hooks/mutation/useCustMutations';
 
 import { RegFormType, StepFourData, formStepData } from 'src/types';
+import {
+  useCustCountries,
+  useCustLocalGovt,
+  useCustStates,
+} from 'src/hooks/query/useLocation';
 
 export default function NOKBio() {
-  const { currentUser, stepFormData, setStepFormData } = useStore();
+  const { currentUser, stepFormData } = useStore();
+  const [useResAddress, setUseResAddress] = useState(false);
 
-  const { register, handleSubmit, reset } = useForm<RegFormType>();
+  const form = useForm<RegFormType>();
   const navigate = useNavigate();
-  const updateCustomerMutation =
-    useUpdateCustMutation<formStepData>('/step-five');
+  const updateCustMutation = useUpdateCustMutation<formStepData>('/step-five');
+
+  const { nokResidenceCountry, nokResidenceState } = useWatch({
+    control: form.control,
+  });
 
   const { data: userData } = useCustomerByDetails(
     currentUser?.email,
     currentUser?.phoneNumber
   );
+  const { data: countries } = useCustCountries();
+  const { data: states } = useCustStates();
+  const { data: localGovt } = useCustLocalGovt(nokResidenceState);
+
+  function handleUseResAddressChange(isChecked: boolean) {
+    setUseResAddress(isChecked);
+    if (isChecked) {
+      const residenceHouseNameOrNumber =
+        userData?.result?.residenceHouseNameOrNumber;
+      const residenceStreetName = userData?.result?.residenceStreetName;
+      const residenceTownCity = userData?.result?.residenceTownCity;
+      const residenceCountry = userData?.result?.residenceCountry;
+      const residenceState = userData?.result?.residenceState;
+      const residenceLocalGovernmentCode =
+        userData?.result?.residenceLocalGovernmentCode;
+      form.setValue(
+        'residenceHouseNameOrNumber',
+        String(residenceHouseNameOrNumber)
+      );
+      form.setValue('nokResidenceStreetName', String(residenceStreetName));
+      form.setValue('nokResidenceTownCity', String(residenceTownCity));
+
+      form.setValue('nokResidenceCountry', String(residenceCountry));
+      form.setValue('nokResidenceState', String(residenceState));
+
+      form.setValue(
+        'nokResidenceLocalGovernment',
+        String(residenceLocalGovernmentCode)
+      );
+    } else {
+      form.setValue('residenceHouseNameOrNumber', '');
+      form.setValue('nokResidenceStreetName', '');
+      form.setValue('nokResidenceTownCity', '');
+
+      form.setValue('nokResidenceCountry', '');
+      form.setValue('nokResidenceState', '');
+
+      form.setValue('nokResidenceLocalGovernment', '');
+    }
+  }
 
   function onSubmit(data: StepFourData) {
-    const newData = {
+    const newData: formStepData = {
       ...NEW_VALUES,
       ...stepFormData,
       nokTitle: data?.nokTitle,
       nokEmail: data?.nokEmail,
+      nokGender: data?.nokGender,
       nokFirstname: data?.nokFirstname,
       nokSurname: data?.nokSurname,
       nokMiddlename: data?.nokMiddlename,
@@ -62,15 +111,14 @@ export default function NOKBio() {
       nokpoBox: data?.nokpoBox || '',
       nokZipCode: data?.nokZipCode || '',
       nokResidenceStreetName: data?.nokResidenceStreetName,
-      ...STATUSES,
-      ...ABROAD_DATA,
+      nokNigeriaOrAbroad: nokResidenceCountry !== 'NG' ? 'A' : 'N',
     };
-    updateCustomerMutation.mutate(newData);
+    updateCustMutation.mutate(newData);
   }
 
   useEffect(() => {
     if (currentUser.email !== '') {
-      reset(
+      form.reset(
         {
           nokTitle: userData?.result.nokTitle || '',
           nokEmail: userData?.result.nokEmail || '',
@@ -95,8 +143,26 @@ export default function NOKBio() {
     }
   }, [userData, currentUser]);
 
+  useEffect(() => {
+    if (
+      nokResidenceCountry !== '' &&
+      nokResidenceCountry !== 'NG' &&
+      nokResidenceCountry !== undefined
+    ) {
+      form.setValue('nokResidenceState', 'FR');
+      if (states) {
+        form.setValue('nokResidenceLocalGovernment', 'FRN');
+      }
+    } else {
+      if (!useResAddress) {
+        form.setValue('nokResidenceState', '');
+        form.setValue('nokResidenceLocalGovernment', '');
+      }
+    }
+  }, [nokResidenceCountry]);
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form onSubmit={form.handleSubmit(onSubmit)}>
       <div className="font-inter min-h-screen">
         <INavbar />
         <Divider className="my-2 mx-auto max-w-[980px]" />
@@ -111,7 +177,7 @@ export default function NOKBio() {
 
           {/* <Divider className="my-10 mx-auto" /> */}
 
-          <Accordion defaultExpandedKeys={['1']} selectionMode="multiple">
+          <Accordion selectionMode="multiple">
             <AccordionItem
               key={'1'}
               className="py-5"
@@ -134,7 +200,7 @@ export default function NOKBio() {
                   classNames={{
                     trigger: ['border-1 border-solid border-grey-900'],
                   }}
-                  {...register('nokTitle')}
+                  {...form.register('nokTitle')}
                 >
                   {CUSTOMER_TITLE.map((userT) => (
                     <SelectItem
@@ -157,7 +223,7 @@ export default function NOKBio() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('nokFirstname')}
+                  {...form.register('nokFirstname')}
                 />
 
                 <Input
@@ -170,7 +236,7 @@ export default function NOKBio() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('nokMiddlename')}
+                  {...form.register('nokMiddlename')}
                 />
 
                 <Input
@@ -183,7 +249,7 @@ export default function NOKBio() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('nokSurname')}
+                  {...form.register('nokSurname')}
                 />
 
                 <Select
@@ -195,7 +261,7 @@ export default function NOKBio() {
                   classNames={{
                     trigger: INPUT_STYLES,
                   }}
-                  {...register('nokGender')}
+                  {...form.register('nokGender')}
                 >
                   <SelectItem
                     key={'Male'}
@@ -222,7 +288,7 @@ export default function NOKBio() {
                   classNames={{
                     trigger: INPUT_STYLES,
                   }}
-                  {...register('relationship')}
+                  {...form.register('relationship')}
                 >
                   {NOK_RELATIONSHIP.map((rel) => (
                     <SelectItem
@@ -248,7 +314,16 @@ export default function NOKBio() {
                 title: ['font-semibold text-xl'],
               }}
             >
-              {/* <Checkbox className="mt-2 mb-5">Use Residential Address</Checkbox> */}
+              <div className="p-5 bg-gray-100 mt-2 mb-5 rounded-md">
+                <Checkbox
+                  isSelected={useResAddress}
+                  radius="sm"
+                  onValueChange={handleUseResAddressChange}
+                  classNames={{ label: ['font-medium text-sm'] }}
+                >
+                  Do you want to use Residential Address as NOK Address?
+                </Checkbox>
+              </div>
               <div className="grid grid-cols-3 gap-5">
                 <Input
                   type="text"
@@ -260,7 +335,7 @@ export default function NOKBio() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('nokResidenceHouseNumber')}
+                  {...form.register('nokResidenceHouseNumber')}
                 />
 
                 <Input
@@ -273,7 +348,7 @@ export default function NOKBio() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('nokResidenceStreetName')}
+                  {...form.register('nokResidenceStreetName')}
                 />
 
                 <Input
@@ -286,68 +361,114 @@ export default function NOKBio() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('nokResidenceTownCity')}
+                  {...form.register('nokResidenceTownCity')}
                 />
 
-                <Select
-                  label="Residential Country"
-                  placeholder="-Select Country-"
-                  isRequired
-                  radius="sm"
-                  className="font-inter font-medium text-xl"
-                  classNames={{
-                    trigger: INPUT_STYLES,
-                  }}
-                  {...register('nokResidenceCountry')}
-                >
-                  <SelectItem
-                    key={'Nigeria'}
-                    value={'Nigeria'}
-                    classNames={{ title: ['font-inter'] }}
-                  >
-                    Nigeria
-                  </SelectItem>
-                </Select>
+                <Controller
+                  control={form.control}
+                  name="nokResidenceCountry"
+                  render={({ field }) => (
+                    <Select
+                      items={
+                        countries?.filter((country) => country.name !== '') ||
+                        []
+                      }
+                      label="Residential Country"
+                      isRequired
+                      radius="sm"
+                      className="font-inter font-medium text-xl"
+                      classNames={{
+                        trigger: INPUT_STYLES,
+                      }}
+                      isDisabled={useResAddress}
+                      selectedKeys={[field.value]}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                    >
+                      {(data) => (
+                        <SelectItem
+                          key={data.code}
+                          value={data.code}
+                          classNames={{ title: ['font-inter'] }}
+                        >
+                          {data.name}
+                        </SelectItem>
+                      )}
+                    </Select>
+                  )}
+                />
 
-                <Select
-                  label="Residential State"
-                  placeholder="-Select State-"
-                  isRequired
-                  radius="sm"
-                  className="font-inter font-medium text-xl"
-                  classNames={{
-                    trigger: INPUT_STYLES,
-                  }}
-                  {...register('nokResidenceState')}
-                >
-                  <SelectItem
-                    key={'Lagos'}
-                    value={'Lagos'}
-                    classNames={{ title: ['font-inter'] }}
-                  >
-                    Lagos
-                  </SelectItem>
-                </Select>
+                <Controller
+                  control={form.control}
+                  name="nokResidenceState"
+                  render={({ field }) => (
+                    <Select
+                      items={states || []}
+                      label="Residential State"
+                      isRequired
+                      radius="sm"
+                      className="font-inter font-medium text-xl"
+                      classNames={{
+                        trigger: INPUT_STYLES,
+                      }}
+                      isDisabled={
+                        (nokResidenceCountry !== 'NG' &&
+                          nokResidenceCountry !== undefined) ||
+                        useResAddress
+                      }
+                      selectedKeys={[field.value]}
+                      disabledKeys={['FR']}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                    >
+                      {(data) => (
+                        <SelectItem
+                          key={data.code}
+                          value={data.code}
+                          classNames={{ title: ['font-inter'] }}
+                        >
+                          {data.name}
+                        </SelectItem>
+                      )}
+                    </Select>
+                  )}
+                />
 
-                <Select
-                  label="Local Governement of Residence"
-                  placeholder="-Select Local Govt-"
-                  isRequired
-                  radius="sm"
-                  className="font-inter font-medium text-xl"
-                  classNames={{
-                    trigger: INPUT_STYLES,
-                  }}
-                  {...register('nokResidenceLocalGovernment')}
-                >
-                  <SelectItem
-                    key={'Mushin'}
-                    value={'Mushin'}
-                    classNames={{ title: ['font-inter'] }}
-                  >
-                    Mushin
-                  </SelectItem>
-                </Select>
+                <Controller
+                  control={form.control}
+                  name="nokResidenceLocalGovernment"
+                  render={({ field }) => (
+                    <Select
+                      items={localGovt || []}
+                      label="Local Governement of Residence"
+                      isRequired
+                      radius="sm"
+                      className="font-inter font-medium text-xl"
+                      classNames={{
+                        trigger: INPUT_STYLES,
+                      }}
+                      isDisabled={
+                        (nokResidenceCountry !== 'NG' &&
+                          nokResidenceCountry !== undefined) ||
+                        nokResidenceState === ''
+                      }
+                      selectedKeys={[field.value]}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      disabledKeys={['FRN']}
+                    >
+                      {(data) => (
+                        <SelectItem
+                          key={data.code}
+                          value={data.code}
+                          classNames={{ title: ['font-inter'] }}
+                        >
+                          {data.name}
+                        </SelectItem>
+                      )}
+                    </Select>
+                  )}
+                />
 
                 <Input
                   type="text"
@@ -359,7 +480,7 @@ export default function NOKBio() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('nokPhoneNumber')}
+                  {...form.register('nokPhoneNumber')}
                 />
 
                 <Input
@@ -371,7 +492,7 @@ export default function NOKBio() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('nokEmail')}
+                  {...form.register('nokEmail')}
                 />
               </div>
             </AccordionItem>
@@ -401,11 +522,11 @@ export default function NOKBio() {
               <Button
                 radius="lg"
                 type="submit"
-                isLoading={updateCustomerMutation.isPending}
+                isLoading={updateCustMutation.isPending}
                 color="primary"
                 className="font-inter font-semibold bg-black"
               >
-                {updateCustomerMutation.isPending ? 'Loading' : 'Next'}
+                {updateCustMutation.isPending ? 'Loading' : 'Next'}
               </Button>
             </div>
           </div>
