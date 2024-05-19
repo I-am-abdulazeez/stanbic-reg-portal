@@ -12,45 +12,50 @@ import {
 } from '@nextui-org/react';
 
 import { useNavigate } from 'react-router-dom';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import INavbar from 'src/components/INavbar';
 import IFooter from 'src/components/IFooter';
 
 import useStore from 'src/store';
 import { ABROAD_DATA, INPUT_STYLES, NEW_VALUES, STATUSES } from 'src/data';
-import { DateToString } from 'src/helpers';
+import { parseCalendarDateToISO, parseISOToCalendarDate } from 'src/helpers';
 
 import { useCustomerByDetails } from 'src/hooks/query/useCustomers';
 import { useUpdateCustMutation } from 'src/hooks/mutation/useCustMutations';
 
 import { RegFormType, StepThreeData, formStepData } from 'src/types';
+import {
+  useCustCountries,
+  useCustLocalGovt,
+  useCustStates,
+} from 'src/hooks/query/useLocation';
 
 export default function EmploymentRecord() {
-  const navigate = useNavigate();
+  const form = useForm<RegFormType>();
 
+  const navigate = useNavigate();
   const { currentUser, stepFormData } = useStore();
-  const updateCustomerMutation =
-    useUpdateCustMutation<formStepData>('/step-four');
+
+  const updateCustMutation = useUpdateCustMutation<formStepData>('/step-four');
+
+  const { employerCountry, employerState } = useWatch({
+    control: form.control,
+  });
 
   const { data: userData } = useCustomerByDetails(
     currentUser?.email,
     currentUser?.phoneNumber
   );
-
-  const {
-    register,
-    handleSubmit,
-    control,
-    reset,
-    formState: { errors },
-  } = useForm<RegFormType>();
+  const { data: countries } = useCustCountries();
+  const { data: states } = useCustStates();
+  const { data: localGovt } = useCustLocalGovt(employerState);
 
   function onSubmit(data: StepThreeData) {
     const { dateOfFirstAppointment, dateOfCurrentEmployment } = data;
 
-    const formattedDateA = DateToString(dateOfFirstAppointment);
-    const formattedDateB = DateToString(dateOfCurrentEmployment);
+    const formattedDateA = parseCalendarDateToISO(dateOfFirstAppointment);
+    const formattedDateB = parseCalendarDateToISO(dateOfCurrentEmployment);
 
     const newData: formStepData = {
       ...NEW_VALUES,
@@ -70,17 +75,17 @@ export default function EmploymentRecord() {
       currentStep: data.currentStep,
       ...STATUSES,
       ...ABROAD_DATA,
+      employerNigeriaOrAbroad: employerCountry !== 'NG' ? 'A' : 'N',
       dateOfFirstAppointment: formattedDateA,
       dateOfCurrentEmployment: formattedDateB,
     };
     console.log(newData);
-    // setStepFormData(newData);
-    updateCustomerMutation.mutate(newData);
+    updateCustMutation.mutate(newData);
   }
 
   useEffect(() => {
     if (currentUser.email !== '') {
-      reset(
+      form.reset(
         {
           employerName: userData?.result.employerName || '',
           employerPhoneNumber: userData?.result.employerPhoneNumber || '',
@@ -92,6 +97,12 @@ export default function EmploymentRecord() {
           employerCountry: userData?.result.employerCountry || '',
           employerLocalGovernment:
             userData?.result.employerLocalGovernment || '',
+          dateOfFirstAppointment: parseISOToCalendarDate(
+            String(userData?.result?.dateOfFirstAppointment || '')
+          ),
+          dateOfCurrentEmployment: parseISOToCalendarDate(
+            String(userData?.result?.dateOfCurrentEmployment || '')
+          ),
           designation: userData?.result.designation || '',
           staffFileNo: userData?.result.staffFileNo || '',
           currentGradeLevel: userData?.result.currentGradeLevel || '',
@@ -99,13 +110,27 @@ export default function EmploymentRecord() {
         },
         { keepDirtyValues: true, keepValues: true }
       );
-      console.log(userData?.result?.employerName);
     }
-    console.log(currentUser);
   }, [userData, currentUser]);
 
+  useEffect(() => {
+    if (
+      employerCountry !== '' &&
+      employerCountry !== 'NG' &&
+      employerCountry !== undefined
+    ) {
+      form.setValue('employerState', 'FR');
+      if (states) {
+        form.setValue('employerLocalGovernment', 'FRN');
+      }
+    } else {
+      form.setValue('employerState', '');
+      form.setValue('employerLocalGovernment', '');
+    }
+  }, [employerCountry]);
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form onSubmit={form.handleSubmit(onSubmit)}>
       <div className="font-inter min-h-screen">
         <INavbar />
         <Divider className="my-2 mx-auto max-w-[980px]" />
@@ -118,9 +143,7 @@ export default function EmploymentRecord() {
 
           <Progress aria-label="Loading..." value={60} className="mt-10 mb-7" />
 
-          {/* <Divider className="my-10 mx-auto" /> */}
-
-          <Accordion defaultExpandedKeys={['1']} selectionMode="multiple">
+          <Accordion selectionMode="multiple">
             <AccordionItem
               key={'1'}
               className="py-5"
@@ -145,7 +168,7 @@ export default function EmploymentRecord() {
                   classNames={{
                     trigger: ['border-1 border-solid border-grey-900'],
                   }}
-                  {...register('employerName')}
+                  {...form.register('employerName')}
                 >
                   <SelectItem
                     key={'TECH'}
@@ -166,7 +189,7 @@ export default function EmploymentRecord() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('employerPhoneNumber')}
+                  {...form.register('employerPhoneNumber')}
                 />
 
                 <Input
@@ -179,7 +202,7 @@ export default function EmploymentRecord() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('employerBuildingNameOrNumber')}
+                  {...form.register('employerBuildingNameOrNumber')}
                 />
 
                 <Input
@@ -192,7 +215,7 @@ export default function EmploymentRecord() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('employerStreetName')}
+                  {...form.register('employerStreetName')}
                 />
 
                 <Input
@@ -205,7 +228,7 @@ export default function EmploymentRecord() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('employerTownCity')}
+                  {...form.register('employerTownCity')}
                 />
 
                 <Input
@@ -218,7 +241,7 @@ export default function EmploymentRecord() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('employerZipCode')}
+                  {...form.register('employerZipCode')}
                 />
 
                 <Input
@@ -231,68 +254,112 @@ export default function EmploymentRecord() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('employerPOBox')}
+                  {...form.register('employerPOBox')}
                 />
 
-                <Select
-                  label="Employer Country"
-                  placeholder="-Select Country-"
-                  isRequired
-                  radius="sm"
-                  className="font-inter font-medium text-xl"
-                  classNames={{
-                    trigger: INPUT_STYLES,
-                  }}
-                  {...register('employerCountry')}
-                >
-                  <SelectItem
-                    key={'Nigeria'}
-                    value={'Nigeria'}
-                    classNames={{ title: ['font-inter'] }}
-                  >
-                    Nigeria
-                  </SelectItem>
-                </Select>
+                <Controller
+                  control={form.control}
+                  name="employerCountry"
+                  render={({ field }) => (
+                    <Select
+                      items={
+                        countries?.filter((country) => country.name !== '') ||
+                        []
+                      }
+                      label="Employer Country"
+                      isRequired
+                      radius="sm"
+                      className="font-inter font-medium text-xl"
+                      classNames={{
+                        trigger: INPUT_STYLES,
+                      }}
+                      selectedKeys={[field.value]}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                    >
+                      {(data) => (
+                        <SelectItem
+                          key={data.code}
+                          value={data.code}
+                          classNames={{ title: ['font-inter'] }}
+                        >
+                          {data.name}
+                        </SelectItem>
+                      )}
+                    </Select>
+                  )}
+                />
 
-                <Select
-                  label="Employer State"
-                  placeholder="-Select State-"
-                  isRequired
-                  radius="sm"
-                  className="font-inter font-medium text-xl"
-                  classNames={{
-                    trigger: INPUT_STYLES,
-                  }}
-                  {...register('employerState')}
-                >
-                  <SelectItem
-                    key={'Lagos'}
-                    value={'Lagos'}
-                    classNames={{ title: ['font-inter'] }}
-                  >
-                    Lagos
-                  </SelectItem>
-                </Select>
+                <Controller
+                  control={form.control}
+                  name="employerState"
+                  render={({ field }) => (
+                    <Select
+                      items={states || []}
+                      label="Employer State"
+                      isRequired
+                      radius="sm"
+                      className="font-inter font-medium text-xl"
+                      classNames={{
+                        trigger: INPUT_STYLES,
+                      }}
+                      isDisabled={
+                        employerCountry !== 'NG' &&
+                        employerCountry !== undefined
+                      }
+                      selectedKeys={[field.value]}
+                      disabledKeys={['FR']}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                    >
+                      {(data) => (
+                        <SelectItem
+                          key={data.code}
+                          value={data.code}
+                          classNames={{ title: ['font-inter'] }}
+                        >
+                          {data.name}
+                        </SelectItem>
+                      )}
+                    </Select>
+                  )}
+                />
 
-                <Select
-                  label="Employer Local Governement"
-                  placeholder="-Select Local Govt-"
-                  isRequired
-                  radius="sm"
-                  className="font-inter font-medium text-xl"
-                  classNames={{
-                    trigger: INPUT_STYLES,
-                  }}
-                  {...register('employerLocalGovernment')}
-                >
-                  <SelectItem
-                    key={'Mushin'}
-                    value={'Mushin'}
-                    classNames={{ title: ['font-inter'] }}
-                  >
-                    Mushin
-                  </SelectItem>
-                </Select>
+                <Controller
+                  control={form.control}
+                  name="employerLocalGovernment"
+                  render={({ field }) => (
+                    <Select
+                      items={localGovt || []}
+                      label="Employer Local Governement"
+                      isRequired
+                      radius="sm"
+                      className="font-inter font-medium text-xl"
+                      classNames={{
+                        trigger: INPUT_STYLES,
+                      }}
+                      isDisabled={
+                        (employerCountry !== 'NG' &&
+                          employerCountry !== undefined) ||
+                        employerState === ''
+                      }
+                      selectedKeys={[field.value]}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      disabledKeys={['FRN']}
+                    >
+                      {(data) => (
+                        <SelectItem
+                          key={data.code}
+                          value={data.code}
+                          classNames={{ title: ['font-inter'] }}
+                        >
+                          {data.name}
+                        </SelectItem>
+                      )}
+                    </Select>
+                  )}
+                />
 
                 <Input
                   type="text"
@@ -304,7 +371,7 @@ export default function EmploymentRecord() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('designation')}
+                  {...form.register('designation')}
                 />
               </div>
             </AccordionItem>
@@ -332,7 +399,7 @@ export default function EmploymentRecord() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('staffFileNo')}
+                  {...form.register('staffFileNo')}
                 />
                 {/* <DateInput
                   label={'Date of First Employment'}
@@ -344,15 +411,21 @@ export default function EmploymentRecord() {
                   }}
                 /> */}
                 <Controller
-                  control={control}
+                  control={form.control}
                   name="dateOfFirstAppointment"
-                  rules={{ required: true }}
+                  rules={{
+                    required: {
+                      value: true,
+                      message: 'Date of first employment required',
+                    },
+                  }}
                   render={({ field: { onChange, value } }) => (
                     <div>
                       <DateInput
                         label={'Date of First Employment'}
-                        isRequired
-                        isInvalid={Boolean(errors.dateOfFirstAppointment)}
+                        isInvalid={Boolean(
+                          form.formState.errors.dateOfFirstAppointment
+                        )}
                         radius="sm"
                         onChange={onChange}
                         value={value}
@@ -361,9 +434,12 @@ export default function EmploymentRecord() {
                           inputWrapper: INPUT_STYLES,
                         }}
                       />
-                      {errors.dateOfFirstAppointment && (
-                        <p className="text-danger text-xs font-inter">
-                          Please fill out this field.
+                      {form.formState.errors.dateOfFirstAppointment && (
+                        <p className="text-danger text-xs font-inter mt-2 ml-3">
+                          {
+                            form.formState.errors.dateOfFirstAppointment
+                              ?.message
+                          }
                         </p>
                       )}
                     </div>
@@ -371,15 +447,33 @@ export default function EmploymentRecord() {
                 />
 
                 <Controller
-                  control={control}
+                  control={form.control}
                   name="dateOfCurrentEmployment"
-                  rules={{ required: true }}
+                  rules={{
+                    required: {
+                      value: true,
+                      message: 'Date of current employment is required',
+                    },
+                    validate: (value) => {
+                      const firstDate = form.getValues(
+                        'dateOfFirstAppointment'
+                      );
+                      if (!firstDate || !value) {
+                        return true;
+                      }
+                      if (value.compare(firstDate) <= 0) {
+                        return 'Date of Current Employment must be after Date of First Employment.';
+                      }
+                      return true;
+                    },
+                  }}
                   render={({ field: { onChange, value } }) => (
                     <div>
                       <DateInput
                         label={'Date of Current Employment'}
-                        isRequired
-                        isInvalid={Boolean(errors.dateOfCurrentEmployment)}
+                        isInvalid={Boolean(
+                          form.formState.errors.dateOfCurrentEmployment
+                        )}
                         radius="sm"
                         onChange={onChange}
                         value={value}
@@ -388,23 +482,17 @@ export default function EmploymentRecord() {
                           inputWrapper: INPUT_STYLES,
                         }}
                       />
-                      {errors.dateOfCurrentEmployment && (
-                        <p className="text-danger text-xs font-inter">
-                          Please fill out this field.
+                      {form.formState.errors.dateOfCurrentEmployment && (
+                        <p className="text-danger text-xs font-inter mt-2 ml-3">
+                          {
+                            form.formState.errors.dateOfCurrentEmployment
+                              .message
+                          }
                         </p>
                       )}
                     </div>
                   )}
                 />
-
-                {/* <DateInput
-                  isRequired
-                  radius="sm"
-                  className="font-inter font-medium text-xl"
-                  classNames={{
-                    inputWrapper: INPUT_STYLES,
-                  }}
-                /> */}
               </div>
             </AccordionItem>
             <AccordionItem
@@ -431,7 +519,7 @@ export default function EmploymentRecord() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('currentGradeLevel')}
+                  {...form.register('currentGradeLevel')}
                 />
 
                 <Input
@@ -443,7 +531,7 @@ export default function EmploymentRecord() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...register('currentStep')}
+                  {...form.register('currentStep')}
                 />
               </div>
             </AccordionItem>
@@ -473,11 +561,11 @@ export default function EmploymentRecord() {
               <Button
                 radius="lg"
                 type="submit"
-                isLoading={updateCustomerMutation.isPending}
+                isLoading={updateCustMutation.isPending}
                 color="primary"
                 className="font-inter font-semibold bg-black"
               >
-                {updateCustomerMutation.isPending ? 'Loading' : 'Next'}
+                {updateCustMutation.isPending ? 'Loading' : 'Next'}
               </Button>
             </div>
           </div>
