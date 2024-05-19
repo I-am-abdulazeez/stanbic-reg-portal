@@ -29,7 +29,7 @@ import {
   STATUSES,
   GENDER,
 } from 'src/data';
-import { DateToString } from 'src/helpers';
+import { parseCalendarDateToISO, parseISOToCalendarDate } from 'src/helpers';
 
 import { useCustomerByDetails } from 'src/hooks/query/useCustomers';
 import {
@@ -40,7 +40,7 @@ import {
 import { useUpdateCustMutation } from 'src/hooks/mutation/useCustMutations';
 
 import { RegFormType, StepTwoData, formStepData } from 'src/types';
-import { parseDate } from '@internationalized/date';
+import { CalendarDate, parseDate } from '@internationalized/date';
 
 export default function PersonalDetails() {
   const navigate = useNavigate();
@@ -108,7 +108,6 @@ export default function PersonalDetails() {
       );
     } else {
       form.setValue('correspondenceHouseNameOrNumber', '');
-      form.setValue('correspondenceHouseNameOrNumber', '');
       form.setValue('correspondenceStreetName', '');
       form.setValue('correspondenceTownCity', '');
       form.setValue('correspondenceZipCode', '');
@@ -121,22 +120,22 @@ export default function PersonalDetails() {
 
   function onSubmit(data: StepTwoData) {
     const { dateOfBirth, ...rest } = data;
-    const formattedDate = DateToString(dateOfBirth);
+    const formattedDate = parseCalendarDateToISO(dateOfBirth);
 
-    const newData = {
+    const newData: formStepData = {
       ...NEW_VALUES,
+      ...STATUSES,
       ...rest,
       dateOfBirth: formattedDate,
-      ...STATUSES,
       ...ABROAD_DATA,
+      nigeriaOrAbroad: residenceCountry !== 'NG' ? 'A' : 'N',
     };
     console.log(newData);
     // updateCustMutation.mutate(newData);
-    // setStepFormData(newData);
   }
 
   useEffect(() => {
-    if (currentUser.email !== '') {
+    if (userData) {
       form.reset(
         {
           title: userData?.result?.title || '',
@@ -144,6 +143,9 @@ export default function PersonalDetails() {
           surname: userData?.result?.surname || '',
           middleName: userData?.result?.middleName || '',
           gender: userData?.result?.gender,
+          dateOfBirth: parseISOToCalendarDate(
+            String(userData.result?.dateOfBirth || '')
+          ),
           placeOfBirth: userData?.result.placeOfBirth || '',
           maritalStatus: userData?.result?.maritalStatus,
           nationality: userData?.result.nationality || '',
@@ -219,7 +221,8 @@ export default function PersonalDetails() {
         form.setValue('residenceLocalGovernmentCode', 'FRN');
       }
     } else {
-      if (!useResAddress) {
+      const resValue = userData?.result?.residenceState;
+      if (!useResAddress && resValue === '') {
         form.setValue('residenceState', '');
         form.setValue('residenceLocalGovernmentCode', '');
       }
@@ -258,7 +261,7 @@ export default function PersonalDetails() {
 
           <Progress aria-label="Loading..." value={40} className="mt-10 mb-7" />
 
-          <Accordion defaultExpandedKeys={['1']} selectionMode="multiple">
+          <Accordion selectionMode="multiple">
             <AccordionItem
               key={'1'}
               className="py-5"
@@ -366,7 +369,7 @@ export default function PersonalDetails() {
                         isInvalid={Boolean(form.formState.errors.dateOfBirth)}
                         radius="sm"
                         onChange={field.onChange}
-                        value={field.value || parseDate('2024-04-04')}
+                        value={field.value}
                         className="font-inter font-medium text-xl"
                         classNames={{
                           inputWrapper: INPUT_STYLES,
@@ -509,6 +512,7 @@ export default function PersonalDetails() {
                       }
                       onBlur={field.onBlur}
                       onChange={field.onChange}
+                      disabledKeys={['FRN']}
                     >
                       {(data) => (
                         <SelectItem
@@ -546,6 +550,7 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
+                  isDisabled={userData?.result?.phoneNumber !== ''}
                   {...form.register('phoneNumber')}
                 />
 
@@ -559,6 +564,7 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
+                  isDisabled={userData?.result?.email !== ''}
                   {...form.register('email')}
                 />
 
@@ -750,6 +756,7 @@ export default function PersonalDetails() {
                       }
                       onBlur={field.onBlur}
                       onChange={field.onChange}
+                      disabledKeys={['FRN']}
                     >
                       {(data) => (
                         <SelectItem
@@ -786,8 +793,8 @@ export default function PersonalDetails() {
                   onValueChange={handleUseResAddressChange}
                   classNames={{ label: ['font-medium text-sm'] }}
                 >
-                  Do you want to use residential address as correspondence
-                  address?
+                  Do you want to use Residential Address as Correspondence
+                  Address?
                 </Checkbox>
               </div>
               <div className="grid grid-cols-4 gap-5">
@@ -902,6 +909,7 @@ export default function PersonalDetails() {
                       }
                       onBlur={field.onBlur}
                       onChange={field.onChange}
+                      disabledKeys={['FR']}
                     >
                       {(data) => (
                         <SelectItem
@@ -940,6 +948,7 @@ export default function PersonalDetails() {
                       }
                       onBlur={field.onBlur}
                       onChange={field.onChange}
+                      disabledKeys={['FRN']}
                     >
                       {(data) => (
                         <SelectItem
