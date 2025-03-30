@@ -40,7 +40,6 @@ import {
 import { useUpdateCustMutation } from 'src/hooks/mutation/useCustMutations';
 
 import { RegFormType, StepTwoData, formStepData } from 'src/types';
-import { CalendarDate, parseDate } from '@internationalized/date';
 
 export default function PersonalDetails() {
   const navigate = useNavigate();
@@ -50,14 +49,16 @@ export default function PersonalDetails() {
   const {
     nationality,
     stateOfOrigin,
+
     residenceState,
     residenceCountry,
     residenceLocalGovernmentCode,
-    correspondenceState,
+
     correspondenceCountry,
+    correspondenceState,
   } = useWatch({ control: form.control });
 
-  const { currentUser } = useStore();
+  const { currentUser, setStepFormData, stepFormData } = useStore();
 
   const { data: userData } = useCustomerByDetails(
     currentUser?.email,
@@ -71,9 +72,19 @@ export default function PersonalDetails() {
   const { data: resStates } = useCustStates();
   const { data: corresStates } = useCustStates();
 
-  const { data: localGovtOrigin } = useCustLocalGovt(stateOfOrigin);
-  const { data: resLocalGovt } = useCustLocalGovt(residenceState);
-  const { data: corresLocalGovt } = useCustLocalGovt(correspondenceState);
+  const { data: localGovtOrigin } = useCustLocalGovt(
+    stateOfOrigin || userData?.result?.stateOfOrigin
+  );
+  const { data: resLocalGovt } = useCustLocalGovt(
+    residenceState || userData?.result?.residenceState
+  );
+  const { data: corresLocalGovt } = useCustLocalGovt(
+    correspondenceState || userData?.result?.correspondenceState
+  );
+
+  console.log(correspondenceState);
+
+  console.log(userData?.result?.correspondenceLocalGovernmentCode);
 
   const updateCustMutation = useUpdateCustMutation<formStepData>('/step-three');
 
@@ -119,19 +130,22 @@ export default function PersonalDetails() {
   }
 
   function onSubmit(data: StepTwoData) {
-    const { dateOfBirth, ...rest } = data;
+    const { dateOfBirth, gender, maritalStatus, ...rest } = data;
     const formattedDate = parseCalendarDateToISO(dateOfBirth);
 
     const newData: formStepData = {
       ...NEW_VALUES,
-      ...STATUSES,
       ...rest,
       dateOfBirth: formattedDate,
+      ...STATUSES,
+      gender: Math.floor(gender),
+      maritalStatus: Math.floor(maritalStatus),
       ...ABROAD_DATA,
       nigeriaOrAbroad: residenceCountry !== 'NG' ? 'A' : 'N',
     };
-    console.log(newData);
-    // updateCustMutation.mutate(newData);
+    // console.log(newData);
+    setStepFormData(newData);
+    updateCustMutation.mutate(newData);
   }
 
   useEffect(() => {
@@ -150,7 +164,8 @@ export default function PersonalDetails() {
           maritalStatus: userData?.result?.maritalStatus,
           nationality: userData?.result.nationality || '',
           stateOfOrigin: userData?.result.stateOfOrigin || '',
-          localGovernmentOfOrigin: userData?.result.stateOfOrigin || '',
+          localGovernmentOfOrigin:
+            userData?.result.localGovernmentOfOrigin || '',
           maidenOrFormerName: userData?.result.maidenOrFormerName || '',
           phoneNumber: userData?.result?.phoneNumber || '',
           email: userData?.result?.email || '',
@@ -192,6 +207,8 @@ export default function PersonalDetails() {
         { keepDirtyValues: true, keepValues: true }
       );
     }
+    console.log(userData);
+    console.log(currentUser);
   }, [userData, currentUser, useResAddress]);
 
   useEffect(() => {
@@ -205,8 +222,11 @@ export default function PersonalDetails() {
         form.setValue('localGovernmentOfOrigin', 'FRN');
       }
     } else {
-      form.setValue('stateOfOrigin', '');
-      form.setValue('localGovernmentOfOrigin', '');
+      form.setValue('stateOfOrigin', userData?.result?.stateOfOrigin || '');
+      form.setValue(
+        'localGovernmentOfOrigin',
+        userData?.result?.localGovernmentOfOrigin || ''
+      );
     }
   }, [nationality]);
 
@@ -240,7 +260,8 @@ export default function PersonalDetails() {
         form.setValue('correspondenceLocalGovernmentCode', 'FRN');
       }
     } else {
-      if (!useResAddress) {
+      const resValue = userData?.result?.correspondenceState;
+      if (!useResAddress && resValue === '') {
         form.setValue('correspondenceState', '');
         form.setValue('correspondenceLocalGovernmentCode', '');
       }
@@ -603,11 +624,16 @@ export default function PersonalDetails() {
                   placeholder="Enter your building number/name "
                   isRequired
                   radius="sm"
+                  isInvalid={Boolean(
+                    form.formState.errors.residenceHouseNameOrNumber
+                  )}
                   className="font-inter font-medium text-xl rounded-lg"
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
-                  {...form.register('residenceHouseNameOrNumber')}
+                  {...form.register('residenceHouseNameOrNumber', {
+                    maxLength: 40,
+                  })}
                 />
 
                 <Input
@@ -808,6 +834,7 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
+                  isDisabled={useResAddress}
                   {...form.register('correspondenceHouseNameOrNumber')}
                 />
 
@@ -821,6 +848,7 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
+                  isDisabled={useResAddress}
                   {...form.register('correspondenceStreetName')}
                 />
 
@@ -834,6 +862,7 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
+                  isDisabled={useResAddress}
                   {...form.register('correspondenceTownCity')}
                 />
 
@@ -846,6 +875,7 @@ export default function PersonalDetails() {
                   classNames={{
                     inputWrapper: INPUT_STYLES,
                   }}
+                  isDisabled={useResAddress}
                   {...form.register('correspondenceZipCode')}
                 />
 
