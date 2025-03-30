@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import {
   Accordion,
   AccordionItem,
+  Autocomplete,
+  AutocompleteItem,
   Button,
   DateInput,
   Divider,
@@ -18,30 +20,35 @@ import INavbar from 'src/components/INavbar';
 import IFooter from 'src/components/IFooter';
 
 import useStore from 'src/store';
-import { ABROAD_DATA, INPUT_STYLES, NEW_VALUES, STATUSES } from 'src/data';
+import { ABROAD_DATA, INPUT_STYLES, NEW_VALUES } from 'src/data';
+
 import { parseCalendarDateToISO, parseISOToCalendarDate } from 'src/helpers';
 
-import { useCustomerByDetails } from 'src/hooks/query/useCustomers';
-import { useUpdateCustMutation } from 'src/hooks/mutation/useCustMutations';
-
-import { RegFormType, StepThreeData, formStepData } from 'src/types';
+import {
+  useCustomerByDetails,
+  useEmployerList,
+} from 'src/hooks/query/useCustomers';
 import {
   useCustCountries,
   useCustLocalGovt,
   useCustStates,
 } from 'src/hooks/query/useLocation';
+import { useUpdateCustMutation } from 'src/hooks/mutation/useCustMutations';
+
+import { RegFormType, StepThreeData, formStepData } from 'src/types';
 
 export default function EmploymentRecord() {
   const form = useForm<RegFormType>();
 
   const navigate = useNavigate();
-  const { currentUser, stepFormData } = useStore();
+  const { currentUser, stepFormData, setStepFormData } = useStore();
 
   const updateCustMutation = useUpdateCustMutation<formStepData>('/step-four');
 
-  const { employerCountry, employerState } = useWatch({
-    control: form.control,
-  });
+  const { employerCountry, employerState, employerCode, employerName } =
+    useWatch({
+      control: form.control,
+    });
 
   const { data: userData } = useCustomerByDetails(
     currentUser?.email,
@@ -51,16 +58,24 @@ export default function EmploymentRecord() {
   const { data: states } = useCustStates();
   const { data: localGovt } = useCustLocalGovt(employerState);
 
+  const { data: employerData } = useEmployerList();
+
   function onSubmit(data: StepThreeData) {
     const { dateOfFirstAppointment, dateOfCurrentEmployment } = data;
+    const {
+      dateOfFirstAppointment: DOF,
+      dateOfCurrentEmployment: DOC,
+      ...newRest
+    } = NEW_VALUES;
 
     const formattedDateA = parseCalendarDateToISO(dateOfFirstAppointment);
     const formattedDateB = parseCalendarDateToISO(dateOfCurrentEmployment);
 
     const newData: formStepData = {
-      ...NEW_VALUES,
+      ...newRest,
       ...stepFormData,
       employerName: data.employerName,
+      employerCode: data.employerCode,
       employerBuildingNameOrNumber: data.employerBuildingNameOrNumber,
       employerCountry: data.employerCountry,
       employerLocalGovernment: data.employerLocalGovernment,
@@ -73,13 +88,13 @@ export default function EmploymentRecord() {
       staffFileNo: data.staffFileNo,
       currentGradeLevel: data?.currentGradeLevel,
       currentStep: data.currentStep,
-      ...STATUSES,
       ...ABROAD_DATA,
       employerNigeriaOrAbroad: employerCountry !== 'NG' ? 'A' : 'N',
       dateOfFirstAppointment: formattedDateA,
       dateOfCurrentEmployment: formattedDateB,
+      designation: data.designation,
     };
-    console.log(newData);
+    setStepFormData(newData);
     updateCustMutation.mutate(newData);
   }
 
@@ -89,17 +104,24 @@ export default function EmploymentRecord() {
         {
           employerName: userData?.result.employerName || '',
           employerPhoneNumber: userData?.result.employerPhoneNumber || '',
+          employerBuildingNameOrNumber:
+            userData?.result?.employerBuildingNameOrNumber || '',
           employerStreetName: userData?.result.employerStreetName || '',
           employerTownCity: userData?.result.employerTownCity || '',
           employerZipCode: userData?.result.employerZipCode || '',
+          employerCode: userData?.result?.employerCode || '',
           employerState: userData?.result.employerState || '',
           employerPOBox: userData?.result.employerPOBox || '',
           employerCountry: userData?.result.employerCountry || '',
           employerLocalGovernment:
             userData?.result.employerLocalGovernment || '',
-          dateOfFirstAppointment: parseISOToCalendarDate(
-            String(userData?.result?.dateOfFirstAppointment || '')
-          ),
+          dateOfFirstAppointment:
+            userData?.result?.dateOfFirstAppointment ===
+            parseISOToCalendarDate('2005-12-03T23:00:00.000Z')
+              ? parseISOToCalendarDate('')
+              : parseISOToCalendarDate(
+                  String(userData?.result?.dateOfFirstAppointment || '')
+                ),
           dateOfCurrentEmployment: parseISOToCalendarDate(
             String(userData?.result?.dateOfCurrentEmployment || '')
           ),
@@ -114,6 +136,11 @@ export default function EmploymentRecord() {
   }, [userData, currentUser]);
 
   useEffect(() => {
+    console.log('From useEffect, EmployerName: ' + employerName);
+    console.log('From useEffect: ' + employerCode);
+  }, [employerCode]);
+
+  useEffect(() => {
     if (
       employerCountry !== '' &&
       employerCountry !== 'NG' &&
@@ -124,8 +151,12 @@ export default function EmploymentRecord() {
         form.setValue('employerLocalGovernment', 'FRN');
       }
     } else {
-      form.setValue('employerState', '');
-      form.setValue('employerLocalGovernment', '');
+      form.setValue('employerState', userData?.result.employerState || '');
+
+      form.setValue(
+        'employerLocalGovernment',
+        userData?.result.employerLocalGovernment || ''
+      );
     }
   }, [employerCountry]);
 
@@ -159,25 +190,63 @@ export default function EmploymentRecord() {
               }}
             >
               <div className="grid grid-cols-4 gap-5">
-                <Select
-                  label="Employer Industry"
-                  placeholder="-Select employer industry-"
+                <Controller
+                  control={form.control}
+                  name="employerName"
+                  render={({ field }) => (
+                    <Autocomplete
+                      defaultItems={employerData}
+                      label="Employer Name"
+                      radius="sm"
+                      className="font-inter font-medium text-xl"
+                      classNames={{
+                        listbox: ['border-1 border-solid border-grey-900'],
+                      }}
+                      selectedKey={field.value}
+                      onSelectionChange={(selectedItem) => {
+                        field.onChange(selectedItem);
+                        console.log('From Change: ' + selectedItem);
+                        const selectedEmployer = employerData?.find(
+                          (item) => item.name === selectedItem
+                        );
+                        console.log(selectedEmployer);
+                        if (selectedEmployer) {
+                          form.setValue(
+                            'employerCode',
+                            selectedEmployer.pencomCodeID
+                          );
+                        } else {
+                          form.setValue('employerCode', '');
+                        }
+                      }}
+                      onBlur={field.onBlur}
+                    >
+                      {(data) => (
+                        <AutocompleteItem
+                          key={data.name}
+                          value={data.name}
+                          classNames={{ title: ['font-inter'] }}
+                        >
+                          {data.name}
+                        </AutocompleteItem>
+                      )}
+                    </Autocomplete>
+                  )}
+                />
+
+                <Input
+                  type="text"
+                  label="Employer Code"
+                  placeholder="Enter your employer code"
                   isRequired
+                  isDisabled
                   radius="sm"
-                  className="font-inter font-medium text-xl"
+                  className="font-inter font-medium text-xl rounded-lg"
                   classNames={{
-                    trigger: ['border-1 border-solid border-grey-900'],
+                    inputWrapper: INPUT_STYLES,
                   }}
-                  {...form.register('employerName')}
-                >
-                  <SelectItem
-                    key={'TECH'}
-                    value={'TECH'}
-                    classNames={{ title: ['font-inter'] }}
-                  >
-                    TECH
-                  </SelectItem>
-                </Select>
+                  {...form.register('employerCode')}
+                />
 
                 <Input
                   type="text"
