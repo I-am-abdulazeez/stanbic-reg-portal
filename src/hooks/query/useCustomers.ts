@@ -4,10 +4,17 @@ import {
   fetchTempCustomers,
   fetchTempCustomerByDetails,
   fetchTempCustomerImage,
-  sendCustomerToPencom,
+  // sendCustomerToPencom,
+  fetchTempCustomerEmployer,
+  fetchPencomResponse,
 } from 'src/api';
 
-import { DocumentUploadType, RegFormType } from 'src/types';
+import {
+  DocumentUploadType,
+  EmployerType,
+  PencomResponseType,
+  RegFormType,
+} from 'src/types';
 
 function useCustomer() {
   const customers = useQuery({
@@ -49,14 +56,25 @@ function useCustomerImage(id: number | null, customerID: number | null) {
   return customerImage;
 }
 
-function useSendToPencom(no: number) {
-  const sendToPen = useQuery({
-    queryKey: ['existing_cust_images', no],
-    queryFn: () => sendCustomerToPencom(no),
-    refetchInterval: 5000,
+function useEmployerList() {
+  return useQuery<EmployerType[], Error>({
+    queryKey: ['employer_list'],
+    queryFn: fetchTempCustomerEmployer,
+    refetchOnMount: false,
   });
-
-  return sendToPen;
 }
 
-export { useCustomer, useCustomerByDetails, useCustomerImage, useSendToPencom };
+function useGeneratePencomResponse(referenceID: string) {
+  return useQuery<PencomResponseType, Error>({
+    queryKey: ['pencom_response', referenceID],
+    queryFn: () => fetchPencomResponse(referenceID),
+  });
+}
+
+export {
+  useCustomer,
+  useCustomerByDetails,
+  useCustomerImage,
+  useEmployerList,
+  useGeneratePencomResponse,
+};
