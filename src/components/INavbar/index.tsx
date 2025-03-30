@@ -30,6 +30,7 @@ export default function INavbar() {
         no: null,
         phoneNumber: '',
         imageId: null,
+        ReferenceID: '',
       },
     }));
   }
