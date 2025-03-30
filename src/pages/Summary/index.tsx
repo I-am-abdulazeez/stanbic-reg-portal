@@ -4,17 +4,14 @@ import {
   Button,
   Checkbox,
   Divider,
+  Link,
   Modal,
   ModalBody,
   ModalContent,
-  ModalFooter,
   ModalHeader,
   Spinner,
   useDisclosure,
 } from '@nextui-org/react';
-
-import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
 
 import INavbar from 'src/components/INavbar';
 import IFooter from 'src/components/IFooter';
@@ -22,39 +19,89 @@ import IFooter from 'src/components/IFooter';
 import useStore from 'src/store';
 import {
   useCustomerByDetails,
-  useSendToPencom,
+  useGeneratePencomResponse,
 } from 'src/hooks/query/useCustomers';
+import { useSendToPencom } from 'src/hooks/mutation/useCustMutations';
+import {
+  useCustCountries,
+  useCustLocalGovt,
+  useCustStates,
+} from 'src/hooks/query/useLocation';
 
 export default function Summary() {
   const { stepFormData, currentUser } = useStore();
   const [checked, setChecked] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
   const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
 
-  const navigate = useNavigate();
+  const [responseCheck, setResponseCheck] = useState(false);
 
   const { data: userData, isPending } = useCustomerByDetails(
     currentUser?.email,
     currentUser?.phoneNumber
   );
+  const { data: resCountries } = useCustCountries();
+  const { data: resStates } = useCustStates();
 
-  const { data } = useSendToPencom(Number(currentUser?.no));
+  const { data: corresCountries } = useCustCountries();
+  const { data: corresStates } = useCustStates();
+  const { data: corresLocalGovt } = useCustLocalGovt(
+    userData?.result?.correspondenceState
+  );
 
-  function sendToPencom() {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      toast.success('Generating PIN......', {
-        position: 'bottom-center',
-      });
-      // onOpen();
-    }, 5000);
-  }
+  const { data: employerStates } = useCustStates();
+  const { data: employerLocalGovt } = useCustLocalGovt(
+    userData?.result?.employerState
+  );
+
+  const resCountryValue = resCountries?.find(
+    (country) => country.code === userData?.result?.residenceCountry
+  );
+  const resStateValue = resStates?.find(
+    (state) => state.code === userData?.result?.residenceState
+  );
+
+  const corresCountry = corresCountries?.find(
+    (country) => country.code === userData?.result?.correspondenceCountry
+  );
+  const corresState = corresStates?.find(
+    (state) => state.code === userData?.result?.correspondenceState
+  );
+  const corresLocal = corresLocalGovt?.find(
+    (local) =>
+      local.code === userData?.result?.correspondenceLocalGovernmentCode
+  );
+
+  const employerState = employerStates?.find(
+    (state) => state.code === userData?.result?.employerState
+  );
+  const employerLocal = employerLocalGovt?.find(
+    (local) => local.code === userData?.result?.employerLocalGovernment
+  );
+
+  const userId = userData?.result.no;
+
+  const sendToPen = useSendToPencom(userId!, onOpen);
+
+  const { data, isLoading, refetch } = useGeneratePencomResponse(
+    sendToPen?.data?.ReferenceID!
+  );
 
   useEffect(() => {
-    console.log(stepFormData);
-  }, [stepFormData]);
+    console.log(userId);
+    console.log(currentUser);
+  }, [stepFormData, userId, userData, currentUser]);
+
+  useEffect(() => {
+    console.log(sendToPen.data);
+    if (sendToPen?.data?.ReferenceID) {
+      refetch();
+    }
+    console.log(data);
+
+    console.log(userData);
+    console.log(currentUser);
+  }, [sendToPen, data, refetch, userData]);
 
   return isPending ? (
     <div className="flex h-screen items-center justify-center">
@@ -71,6 +118,21 @@ export default function Summary() {
           <p className="my-4">
             Kindly verify all details provided before final submission.
           </p>
+
+          <div className="flex gap-7 font-semibold">
+            <Link href="/step-two" className="hover:underline">
+              Personal Details
+            </Link>
+            <Link href="/step-three" className="hover:underline">
+              Employment Record
+            </Link>
+            <Link href="/step-four" className="hover:underline">
+              Next of Kin Record
+            </Link>
+            <Link href="/step-five" className="hover:underline">
+              Document upload
+            </Link>
+          </div>
 
           <div>
             <h3 className="text-stanbic font-semibold mt-10 text-xl">
@@ -89,11 +151,21 @@ export default function Summary() {
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">First Name</h3>
-                <p>{userData?.result?.firstName}</p>
+                <p>{userData?.result?.firstName.toUpperCase()}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Marital Status</h3>
-                <p>Single</p>
+                <p>
+                  {userData?.result?.maritalStatus === 1
+                    ? 'Single'
+                    : userData?.result?.maritalStatus === 2
+                    ? 'Married'
+                    : userData?.result?.maritalStatus === 3
+                    ? 'Divorced'
+                    : userData?.result?.maritalStatus === 4
+                    ? 'Seperated'
+                    : 'Widowed'}
+                </p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Place of Birth</h3>
@@ -113,7 +185,7 @@ export default function Summary() {
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Gender</h3>
-                <p>Male</p>
+                <p>{userData?.result?.gender === 1 ? 'Male' : 'Female'}</p>
               </div>
 
               <div className="flex flex-col gap-2">
@@ -147,12 +219,12 @@ export default function Summary() {
                 <p>{userData?.result?.residenceTownCity}</p>
               </div>
               <div className="flex flex-col gap-2">
-                <h3 className="font-semibold">State of Residence</h3>
-                <p>{userData?.result?.residenceState}</p>
+                <h3 className="font-semibold">Country of Residence</h3>
+                <p>{resCountryValue?.name}</p>
               </div>
               <div className="flex flex-col gap-2">
-                <h3 className="font-semibold">Country of Residence</h3>
-                <p>{userData?.result?.residenceCountry}</p>
+                <h3 className="font-semibold">State of Residence</h3>
+                <p>{resStateValue?.name}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Correspondence Building No.</h3>
@@ -169,18 +241,18 @@ export default function Summary() {
                 <p>{userData?.result?.correspondenceTownCity}</p>
               </div>
               <div className="flex flex-col gap-2">
-                <h3 className="font-semibold">Correpondence State</h3>
-                <p>{userData?.result?.correspondenceState}</p>
+                <h3 className="font-semibold">Correspodence Country</h3>
+                <p>{corresCountry?.name}</p>
               </div>
               <div className="flex flex-col gap-2">
-                <h3 className="font-semibold">Correspodence Country</h3>
-                <p>{userData?.result?.correspondenceCountry}</p>
+                <h3 className="font-semibold">Correpondence State</h3>
+                <p>{corresState?.name}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">
                   Correspodence Local Government
                 </h3>
-                <p>{userData?.result?.correspondenceLocalGovernmentCode}</p>
+                <p>{corresLocal?.name}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Mobile</h3>
@@ -230,11 +302,11 @@ export default function Summary() {
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Employer State</h3>
-                <p>{userData?.result?.employerState}</p>
+                <p>{employerState?.name}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Employer Local Government</h3>
-                <p>{userData?.result?.employerLocalGovernment}</p>
+                <p>{employerLocal?.name}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Staff ID</h3>
@@ -256,7 +328,7 @@ export default function Summary() {
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Gender</h3>
-                <p>{userData?.result.nokGender}</p>
+                <p>{userData?.result.nokGender === 1 ? 'Male' : 'Female'}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <h3 className="font-semibold">Relationship</h3>
@@ -320,8 +392,10 @@ export default function Summary() {
               radius="lg"
               className="font-inter font-semibold"
               color="primary"
-              isLoading={isLoading}
-              onClick={sendToPencom}
+              isLoading={sendToPen.isPending}
+              onClick={() => {
+                sendToPen.mutate(userData?.result?.no!);
+              }}
             >
               Submit
             </Button>
@@ -329,32 +403,47 @@ export default function Summary() {
         </div>
       </div>
 
-      <Modal isDismissable={false} isOpen={isOpen} onOpenChange={onOpenChange}>
+      <Modal
+        isDismissable={false}
+        isOpen={isOpen}
+        onOpenChange={(open) => {
+          onOpenChange();
+          if (!open) {
+            setResponseCheck(false);
+          }
+        }}
+        size="xl"
+      >
         <ModalContent>
-          <ModalHeader className="flex flex-col gap-1">
-            PIN from PENCOM
+          <ModalHeader className="flex flex-col gap-1 text-xl">
+            Response from PENCOM
           </ModalHeader>
-          <ModalBody>
-            <p className="font-inter font-semibold">PEN200007366363</p>
+          <ModalBody className="pb-8">
+            {isLoading && <Spinner />}
+            <div>
+              <p>
+                <Link
+                  className="my-3 cursor-pointer"
+                  onClick={() => setResponseCheck((prev) => !prev)}
+                >
+                  Check full response
+                </Link>
+              </p>
+              {responseCheck && data && data?.responseMessage && (
+                <div className="px-4">
+                  <ul className="font-inter font-medium list-disc">
+                    {data.responseMessage
+                      .filter((text) => text !== '')
+                      .map((text, index) => (
+                        <li key={index} className="text-red-600">
+                          {text}
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           </ModalBody>
-          <ModalFooter>
-            <Button
-              color="primary"
-              className="font-semibold bg-black"
-              radius="full"
-              onClick={() => {
-                navigator.clipboard.writeText('PEN200007366363').then(() => {
-                  toast.success('PIN copied!');
-                });
-                setTimeout(() => {
-                  onClose();
-                  navigate('/');
-                }, 1000);
-              }}
-            >
-              Copy PIN
-            </Button>
-          </ModalFooter>
         </ModalContent>
       </Modal>
 
