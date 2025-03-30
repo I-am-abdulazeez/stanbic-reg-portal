@@ -13,35 +13,36 @@ import { Controller, useForm } from 'react-hook-form';
 
 import useStore from 'src/store';
 import { INPUT_STYLES, DEFAULT_FORM_VALUES, ABROAD_DATA } from 'src/data';
-import { DateToString } from 'src/helpers';
+import { parseCalendarDateToISO } from 'src/helpers';
 
 import stanbic from 'src/assets/stanbic-logo.svg';
 
-import { useCustomer } from 'src/hooks/query/useCustomers';
+import { useCustomer, useEmployerList } from 'src/hooks/query/useCustomers';
+import { useCustStates } from './hooks/query/useLocation';
 import {
   useCreateCustMutation,
   useActiveCustMutation,
 } from 'src/hooks/mutation/useCustMutations';
 
 import { RegFormType } from 'src/types';
-import { useCustStates } from './hooks/query/useLocation';
 
 function App() {
   const [existing, setExisting] = useState(false);
 
   const { data } = useCustomer();
-  const { data: stateData } = useCustStates();
+  const { data: states } = useCustStates();
   const custMutation = useCreateCustMutation();
   const existingCustMutation = useActiveCustMutation();
 
   const { register, formState, handleSubmit, control } = useForm<RegFormType>();
 
-  const { currentUser } = useStore();
+  const { currentUser, setStepFormData } = useStore();
+  const { data: employerData, isPending } = useEmployerList();
 
   function onSubmit(data: RegFormType) {
     if (!existing) {
       const { dateOfBirth } = data;
-      const formattedDate = DateToString(dateOfBirth);
+      const formattedDate = parseCalendarDateToISO(dateOfBirth);
 
       const newData = {
         ...DEFAULT_FORM_VALUES,
@@ -54,6 +55,7 @@ function App() {
         residenceState: data?.residenceState,
       };
       custMutation.mutate(newData);
+      setStepFormData(newData);
     } else {
       existingCustMutation.mutate(data);
     }
@@ -61,7 +63,9 @@ function App() {
 
   useEffect(() => {
     console.log(data);
-  }, [data, currentUser]);
+    console.log(isPending);
+    console.log(employerData);
+  }, [data, currentUser, employerData, isPending]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
@@ -88,6 +92,7 @@ function App() {
               <h1 className="text-4xl font-playfair font-extrabold">
                 You deserve to
               </h1>
+
               <h1 className="text-4xl font-playfair font-extrabold mt-2 text-stanbic">
                 Retire Well...
               </h1>
@@ -145,7 +150,9 @@ function App() {
                 classNames={{
                   inputWrapper: INPUT_STYLES,
                 }}
-                {...register('phoneNumber')}
+                {...register('phoneNumber', {
+                  maxLength: 11,
+                })}
               />
               {!existing && (
                 <Controller
@@ -181,7 +188,7 @@ function App() {
                   name="residenceState"
                   render={({ field }) => (
                     <Select
-                      items={stateData || []}
+                      items={states || []}
                       label="State of Residence"
                       placeholder="-Select State-"
                       radius="sm"
