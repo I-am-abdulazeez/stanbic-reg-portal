@@ -20,7 +20,7 @@ import {
 import { FileType, ImageUpload, base64Type } from 'src/types';
 
 export default function DocsUpload() {
-  const { currentUser, currentUserDocs } = useStore();
+  const { currentUser, currentUserDocs, stepFormData } = useStore();
   const custData = useCustomerImage(currentUser?.imageId, currentUser?.no);
 
   const createImageMutation = useCreateImageMutation();
@@ -150,7 +150,8 @@ export default function DocsUpload() {
     console.log(currentUserDocs);
     console.log(custData?.data);
     console.log(currentUser);
-  }, [currentUser, currentUserDocs, custData?.data]);
+    console.log(stepFormData);
+  }, [currentUser, currentUserDocs, custData?.data, stepFormData]);
   return (
     <>
       <div className="font-inter min-h-screen">
