@@ -1,9 +1,5 @@
 import { DateValue } from '@nextui-org/react';
-import {
-  CalendarDate,
-  getLocalTimeZone,
-  parseDate,
-} from '@internationalized/date';
+import { CalendarDate, parseDate } from '@internationalized/date';
 import useStore from 'src/store';
 import { StoreDocumentUploadType, base64Type } from 'src/types';
 
@@ -17,16 +13,16 @@ export function isValidISODate(dateString: string): boolean {
 }
 
 export function parseCalendarDateToISO(date: DateValue) {
-  const dateString = date.toDate(getLocalTimeZone()).toISOString();
+  const localDate = new Date(date.year, date.month - 1, date.day, 12, 0, 0, 0); // Set time to midday
+
+  const dateString = localDate.toISOString();
 
   if (!isValidISODate(dateString)) {
     console.error('Invalid date selected. Please choose a valid date.');
     return;
   }
 
-  const formattedDate = dateString;
-
-  return formattedDate;
+  return dateString;
 }
 
 export function parseISOToCalendarDate(
