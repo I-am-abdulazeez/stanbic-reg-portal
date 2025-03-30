@@ -209,6 +209,8 @@ export type StepThreeData = Pick<
   | 'dateOfCurrentEmployment'
   | 'currentGradeLevel'
   | 'currentStep'
+  | 'employerCode'
+  | 'designation'
 >;
 
 export type StepFourData = Pick<
@@ -228,6 +230,7 @@ export type StepFourData = Pick<
   | 'nokZipCode'
   | 'nokResidenceStreetName'
   | 'nokGender'
+  | 'relationship'
 >;
 
 export type formStepData = Omit<
@@ -243,6 +246,7 @@ export type IStoreState = {
   currentRoute: string;
   currentUser: CurrentCustomer & {
     imageId: number | null;
+    ReferenceID: string;
   };
   currentUserDocs: StoreDocumentUploadType;
 
@@ -360,4 +364,20 @@ export type FileUploadProps = {
 export type CountryType = {
   code: string;
   name: string;
+};
+
+export type EmployerType = {
+  pencomCodeID: string;
+  pencomEmployerName: string;
+  pencomSectorCode: string;
+  name: string;
+};
+
+export type PencomResponseType = {
+  setId: null | string;
+  sn: string;
+  pin: string;
+  nin: string;
+  responseCode: string[];
+  responseMessage: string[];
 };
