@@ -1,7 +1,9 @@
 import { TEMPCUST_API, TEMPIMAGE_API } from 'src/data';
+import { employerData } from 'src/data/employerData';
 
 import {
   DocumentUploadType,
+  EmployerType,
   ImageIDs,
   UserDetails,
   formStepData,
@@ -37,6 +39,28 @@ const fetchTempCustomerLocalGovt = (stateCode: string | undefined) => {
   }).then((response) => response.json());
 };
 
+const fetchPencomResponse = (referenceID: string | undefined) => {
+  return fetch(`${TEMPCUST_API}/GetPencomRequestStatus?setid=${referenceID}`, {
+    headers: {
+      'Content-type': 'application/json; charset=UTF-8',
+    },
+  }).then((response) => response.json());
+};
+
+const fetchTempCustomerEmployer = async (): Promise<EmployerType[]> => {
+  // const response = await fetch(`${TEMPCUST_API}/EmployerList`, {
+  //   headers: {
+  //     'Content-type': 'application/json; charset=UTF-8',
+  //   },
+  // });
+  // if (!response.ok) {
+  //   throw new Error('Network response was not ok');
+  // }
+
+  // const data: EmployerType[] = await response.json();
+  return employerData.filter((data) => data.name);
+};
+
 const fetchTempCustomerByDetails = (data: UserDetails) => {
   return fetch(
     `${TEMPCUST_API}/${data.email}?phoneNumber=${data.phoneNumber}`,
@@ -60,11 +84,11 @@ const fetchTempCustomerImage = (data: ImageIDs) => {
 
 const sendCustomerToPencom = (no: number) => {
   return fetch(`${TEMPCUST_API}/generate`, {
+    method: 'POST',
     headers: {
-      method: 'POST',
       'Content-type': 'application/json; charset=UTF-8',
-      body: JSON.stringify(no),
     },
+    body: JSON.stringify(no),
   }).then((response) => response.json());
 };
 
@@ -143,6 +167,8 @@ export {
   fetchTempCustomerCountries,
   fetchTempCustomerStates,
   fetchTempCustomerLocalGovt,
+  fetchTempCustomerEmployer,
+  fetchPencomResponse,
   sendCustomerToPencom,
   createTempCustomer,
   createTempCustomerImage,
