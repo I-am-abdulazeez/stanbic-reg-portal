@@ -6,6 +6,7 @@ import {
   createTempCustomer,
   createTempCustomerImage,
   fetchTempCustomerByDetails,
+  sendCustomerToPencom,
   updateTempCustomerDetails,
   updateTempCustomerImage,
 } from 'src/api';
@@ -34,11 +35,12 @@ function useCreateCustMutation() {
           email: data.email,
           phoneNumber: data.phoneNumber,
           no: data.no,
+          imageId: 0,
         },
       }));
       toast.success('Please confirm OTP sent to your phone number', {
         position: 'bottom-center',
-        duration: 4000,
+        duration: 5000,
       });
       Router.navigate('/confirm-otp');
     },
@@ -46,7 +48,7 @@ function useCreateCustMutation() {
       console.log(err, err.message);
       toast.error(err.message, {
         position: 'bottom-center',
-        duration: 4000,
+        duration: 5000,
       });
       useStore.setState((state) => ({
         ...state,
@@ -84,7 +86,7 @@ function useActiveCustMutation() {
       }));
       toast.success(`Welcome back, ${useStore.getState().currentUser?.email}`, {
         position: 'bottom-center',
-        duration: 4000,
+        duration: 5000,
       });
       Router.navigate('/step-two');
     },
@@ -92,7 +94,7 @@ function useActiveCustMutation() {
       console.log(err, err.message);
       toast.error(err.message, {
         position: 'bottom-center',
-        duration: 4000,
+        duration: 5000,
       });
       useStore.setState((state) => ({
         ...state,
@@ -119,20 +121,18 @@ function useUpdateCustMutation<TData extends formStepData>(
   >({
     mutationKey: ['customer-details'],
     mutationFn: (data: TData) => updateTempCustomerDetails(data),
-    onSuccess: (data) => {
-      setTimeout(() => {
-        toast.success(`Data Saved...`, {
-          position: 'bottom-center',
-          duration: 4000,
-        });
-      }, 1000);
+    onSuccess: () => {
+      toast.success(`Data Saved...`, {
+        position: 'bottom-center',
+        duration: 5000,
+      });
       Router.navigate({ pathname: nextStepRoute });
     },
     onError: (err) => {
       console.log(err, err.name);
       toast.error(err.message, {
         position: 'bottom-center',
-        duration: 4000,
+        duration: 5000,
       });
     },
   });
@@ -157,18 +157,16 @@ function useCreateImageMutation() {
           imageId: data.imageId,
         },
       }));
-      setTimeout(() => {
-        toast.success(`Image Saved..`, {
-          position: 'bottom-center',
-          duration: 4000,
-        });
-      }, 1000);
       Router.navigate('/summary');
+      toast.success(`Image Saved..`, {
+        position: 'bottom-center',
+        duration: 6000,
+      });
     },
     onError: (err) => {
       toast.error(err.message, {
         position: 'bottom-center',
-        duration: 4000,
+        duration: 6000,
       });
       useStore.setState((state) => ({
         ...state,
@@ -191,19 +189,17 @@ function useUpdateImageMutation() {
     mutationKey: ['update_cust_image'],
     mutationFn: (data: ImageIDs) =>
       updateTempCustomerImage({ customerID: data?.customerID, id: data?.id }),
-    onSuccess: (data) => {
-      setTimeout(() => {
-        toast.success(`${data.message}`, {
-          position: 'bottom-center',
-          duration: 4000,
-        });
-      }, 1000);
+    onSuccess: () => {
       Router.navigate('/summary');
+      toast.success(`Image updated...`, {
+        position: 'bottom-center',
+        duration: 5000,
+      });
     },
     onError: (err) => {
       toast.error(err.message, {
         position: 'bottom-center',
-        duration: 4000,
+        duration: 5000,
       });
     },
   });
@@ -211,10 +207,46 @@ function useUpdateImageMutation() {
   return updateImageMutation;
 }
 
+function useSendToPencom(no: number, onOpen: () => void) {
+  const sendToPen = useMutation<
+    { status: string; message: string; ReferenceID: string },
+    Error,
+    number
+  >({
+    mutationKey: ['pencom_customer', no],
+    mutationFn: () => sendCustomerToPencom(no),
+    onSuccess: (data) => {
+      // Router.navigate('/');
+      toast.success(`${data.message}`, {
+        position: 'bottom-center',
+        duration: 6000,
+      });
+      useStore.setState((state) => ({
+        ...state,
+        currentUser: {
+          ...state.currentUser,
+          ReferenceID: data.ReferenceID,
+        },
+      }));
+      onOpen();
+    },
+    onError: (err) => {
+      console.log(err.name);
+      toast.error(err.message, {
+        position: 'bottom-center',
+        duration: 6000,
+      });
+    },
+  });
+
+  return sendToPen;
+}
+
 export {
   useCreateCustMutation,
   useActiveCustMutation,
   useUpdateCustMutation,
+  useSendToPencom,
   useUpdateImageMutation,
   useCreateImageMutation,
 };
