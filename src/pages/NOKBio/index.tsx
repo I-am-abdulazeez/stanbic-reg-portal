@@ -23,20 +23,21 @@ import {
   NOK_RELATIONSHIP,
   INPUT_STYLES,
   NEW_VALUES,
+  GENDER,
 } from 'src/data';
 
 import { useCustomerByDetails } from 'src/hooks/query/useCustomers';
-import { useUpdateCustMutation } from 'src/hooks/mutation/useCustMutations';
-
-import { RegFormType, StepFourData, formStepData } from 'src/types';
 import {
   useCustCountries,
   useCustLocalGovt,
   useCustStates,
 } from 'src/hooks/query/useLocation';
+import { useUpdateCustMutation } from 'src/hooks/mutation/useCustMutations';
+
+import { RegFormType, StepFourData, formStepData } from 'src/types';
 
 export default function NOKBio() {
-  const { currentUser, stepFormData } = useStore();
+  const { currentUser, stepFormData, setStepFormData } = useStore();
   const [useResAddress, setUseResAddress] = useState(false);
 
   const form = useForm<RegFormType>();
@@ -67,7 +68,7 @@ export default function NOKBio() {
       const residenceLocalGovernmentCode =
         userData?.result?.residenceLocalGovernmentCode;
       form.setValue(
-        'residenceHouseNameOrNumber',
+        'nokResidenceHouseNumber',
         String(residenceHouseNameOrNumber)
       );
       form.setValue('nokResidenceStreetName', String(residenceStreetName));
@@ -81,7 +82,7 @@ export default function NOKBio() {
         String(residenceLocalGovernmentCode)
       );
     } else {
-      form.setValue('residenceHouseNameOrNumber', '');
+      form.setValue('nokResidenceHouseNumber', '');
       form.setValue('nokResidenceStreetName', '');
       form.setValue('nokResidenceTownCity', '');
 
@@ -98,7 +99,7 @@ export default function NOKBio() {
       ...stepFormData,
       nokTitle: data?.nokTitle,
       nokEmail: data?.nokEmail,
-      nokGender: data?.nokGender,
+      nokGender: Math.floor(data?.nokGender),
       nokFirstname: data?.nokFirstname,
       nokSurname: data?.nokSurname,
       nokMiddlename: data?.nokMiddlename,
@@ -112,7 +113,11 @@ export default function NOKBio() {
       nokZipCode: data?.nokZipCode || '',
       nokResidenceStreetName: data?.nokResidenceStreetName,
       nokNigeriaOrAbroad: nokResidenceCountry !== 'NG' ? 'A' : 'N',
+      relationship: data?.relationship,
+      employerNatureOfBusiness: 'Petroleum Companies',
     };
+    console.log(newData);
+    setStepFormData(newData);
     updateCustMutation.mutate(newData);
   }
 
@@ -122,6 +127,7 @@ export default function NOKBio() {
         {
           nokTitle: userData?.result.nokTitle || '',
           nokEmail: userData?.result.nokEmail || '',
+          nokGender: userData?.result.nokGender || undefined,
           nokFirstname: userData?.result.nokFirstname || '',
           nokSurname: userData?.result.nokSurname || '',
           nokMiddlename: userData?.result.nokMiddlename || '',
@@ -130,6 +136,7 @@ export default function NOKBio() {
           nokResidenceHouseNumber:
             userData?.result.nokResidenceHouseNumber || '',
           nokResidenceState: userData?.result.nokResidenceState || '',
+          relationship: userData?.result.relationship || '',
           nokResidenceLocalGovernment:
             userData?.result.nokResidenceLocalGovernment || '',
           nokResidenceTownCity: userData?.result.nokResidenceTownCity || '',
@@ -155,11 +162,17 @@ export default function NOKBio() {
       }
     } else {
       if (!useResAddress) {
-        form.setValue('nokResidenceState', '');
-        form.setValue('nokResidenceLocalGovernment', '');
+        form.setValue(
+          'nokResidenceState',
+          userData?.result.nokResidenceState || ''
+        );
+        form.setValue(
+          'nokResidenceLocalGovernment',
+          userData?.result.nokResidenceLocalGovernment || ''
+        );
       }
     }
-  }, [nokResidenceCountry]);
+  }, [nokResidenceCountry, nokResidenceState]);
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -263,20 +276,15 @@ export default function NOKBio() {
                   }}
                   {...form.register('nokGender')}
                 >
-                  <SelectItem
-                    key={'Male'}
-                    value={'Male'}
-                    classNames={{ title: ['font-inter'] }}
-                  >
-                    Male
-                  </SelectItem>
-                  <SelectItem
-                    key={'Female'}
-                    value={'Female'}
-                    classNames={{ title: ['font-inter'] }}
-                  >
-                    Female
-                  </SelectItem>
+                  {GENDER.map((gen) => (
+                    <SelectItem
+                      key={gen.id}
+                      value={gen.id}
+                      classNames={{ title: ['font-inter'] }}
+                    >
+                      {gen.title}
+                    </SelectItem>
+                  ))}
                 </Select>
 
                 <Select
@@ -331,6 +339,7 @@ export default function NOKBio() {
                   placeholder="Enter your NOK building number/name"
                   isRequired
                   radius="sm"
+                  isDisabled={useResAddress}
                   className="font-inter font-medium text-xl rounded-lg"
                   classNames={{
                     inputWrapper: INPUT_STYLES,
@@ -343,6 +352,7 @@ export default function NOKBio() {
                   label="Employer Street name"
                   placeholder="Enter your NOK street name "
                   isRequired
+                  isDisabled={useResAddress}
                   radius="sm"
                   className="font-inter font-medium text-xl rounded-lg"
                   classNames={{
@@ -356,6 +366,7 @@ export default function NOKBio() {
                   label="Village/Town/City "
                   placeholder="Enter your NOK village/town/city"
                   isRequired
+                  isDisabled={useResAddress}
                   radius="sm"
                   className="font-inter font-medium text-xl rounded-lg"
                   classNames={{
@@ -450,7 +461,8 @@ export default function NOKBio() {
                       isDisabled={
                         (nokResidenceCountry !== 'NG' &&
                           nokResidenceCountry !== undefined) ||
-                        nokResidenceState === ''
+                        nokResidenceState === '' ||
+                        useResAddress
                       }
                       selectedKeys={[field.value]}
                       onChange={field.onChange}
