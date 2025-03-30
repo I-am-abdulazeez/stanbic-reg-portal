@@ -13,6 +13,7 @@ const initialState: IStoreState = {
     phoneNumber: '',
     no: null,
     imageId: null,
+    ReferenceID: '',
   },
   currentUserDocs: initialDocsState,
 
